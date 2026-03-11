@@ -10,7 +10,7 @@ A mobile-friendly web UI for controlling [WLED](https://kno.wled.ge/) devices on
 
 ## Usage
 
-Built with [Capacitor](https://capacitorjs.com/) — runs as a native app on Android and iOS.
+Built with [Capacitor](https://capacitorjs.com/) — runs as a native app on Android.
 
 Add your device IP in the **Devices** tab and tap **Connect**. The device must be on the same local network.
 
