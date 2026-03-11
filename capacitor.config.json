@@ -1,0 +1,19 @@
+{
+  "appId": "com.halder.prowled",
+  "appName": "ProWLED",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http"
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
+  "android": {
+    "allowMixedContent": true
+  }
+}

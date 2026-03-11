@@ -1,0 +1,3590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>ProWLED</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070710;
+  --s1: #0e0e1a;
+  --s2: #141422;
+  --b: rgba(255,255,255,0.06);
+  --b2: rgba(255,255,255,0.1);
+  --acc: #00f0ff;
+  --acc2: #bf5fff;
+  --acc3: #ff3d7f;
+  --acc-glow: rgba(0,240,255,0.25);
+  --acc2-glow: rgba(191,95,255,0.25);
+  --tx: #e8e8f5;
+  --mu: #5a5a78;
+  --ok: #00e676;
+  --err: #ff4569;
+  --r: 18px;
+  --r2: 12px;
+  --tr: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;overflow:hidden;font-size:18px}
+
+/* ── AMBIENT BG ── */
+#app{display:flex;flex-direction:row;height:100vh;height:100dvh;position:relative;z-index:1}
+.app-inner{display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;font-size:1rem}
+.amb{position:fixed;inset:0;pointer-events:none;z-index:0}
+.amb::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 70% 50% at 15% -10%,rgba(0,240,255,.07),transparent 55%),
+  radial-gradient(ellipse 60% 60% at 85% 110%,rgba(191,95,255,.07),transparent 55%),
+  radial-gradient(ellipse 40% 40% at 50% 50%,rgba(255,61,127,.04),transparent 60%)}
+.amb::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");opacity:.4;mix-blend-mode:overlay}
+
+/* ── HEADER ── */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;border-bottom:1px solid var(--b);flex-shrink:0;position:relative;z-index:2}
+.hdr::after{content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--acc),transparent);opacity:.4}
+.logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;display:flex;align-items:center;gap:2px}
+.logo-pro{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-wled{color:rgba(255,255,255,.35);font-weight:400}
+.hdr-right{display:flex;align-items:center;gap:10px}
+
+/* power btn in header */
+.hpwr{width:36px;height:36px;border-radius:10px;border:1px solid var(--b2);background:var(--s2);color:var(--mu);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:var(--tr);flex-shrink:0;position:relative}
+.hpwr::after{content:'';position:absolute;inset:-1px;border-radius:11px;background:transparent;transition:var(--tr);pointer-events:none}
+.hpwr.on{border-color:var(--acc);color:var(--acc);background:rgba(0,240,255,.08)}
+.hpwr.on::after{box-shadow:0 0 16px var(--acc-glow),inset 0 0 8px rgba(0,240,255,.05)}
+.hpwr:active{transform:scale(.9)}
+
+#connStatus{font-size:13px;color:var(--mu);display:flex;align-items:center;gap:5px;font-family:'Rajdhani',sans-serif;letter-spacing:.5px}
+
+/* ── SCROLL AREA ── */
+.main{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 14px 16px;scrollbar-width:thin;scrollbar-color:var(--b) transparent;display:flex;flex-direction:column;min-height:0}
+.main::-webkit-scrollbar{width:3px}.main::-webkit-scrollbar-thumb{background:var(--b)}
+
+/* ── PANELS ── */
+.panel{display:none}
+.panel.active{display:flex;flex-direction:column;animation:fadeUp .3s cubic-bezier(0.4,0,0.2,1)}
+/* FX panel needs to fill the scrollable area height */
+#panel-fx{flex:1;min-height:0}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RIGHT SIDEBAR NAV ── */
+.bnav{display:flex;flex-direction:column;background:var(--s1);border-left:1px solid var(--b);flex-shrink:0;padding:8px 4px max(8px,env(safe-area-inset-right)) 4px;gap:4px;position:relative;width:64px;justify-content:center}
+.bnav::before{content:'';position:absolute;top:10%;bottom:10%;left:0;width:1px;background:linear-gradient(180deg,transparent,var(--acc2),transparent);opacity:.3}
+.nb{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 2px;border:none;background:none;color:var(--mu);cursor:pointer;border-radius:12px;transition:var(--tr);min-height:54px;position:relative;font-family:'Inter',sans-serif}
+.nb.active{color:var(--acc)}
+.nb.active::before{content:'';position:absolute;inset:0;border-radius:12px;background:rgba(0,240,255,.06)}
+.nb.active .ni{transform:scale(1.15);filter:drop-shadow(0 0 6px var(--acc))}
+.nb:active{background:rgba(255,255,255,.04)}
+.ni{font-size:18px;line-height:1;transition:var(--tr);display:flex;align-items:center;justify-content:center}
+.ni svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:var(--tr)}
+.nl{font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;font-family:'Rajdhani',sans-serif}
+.nbadge{position:absolute;top:6px;right:6px;width:14px;height:14px;border-radius:50%;background:var(--acc3);border:2px solid var(--bg);font-size:8px;font-weight:700;color:white;display:flex;align-items:center;justify-content:center}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);padding:16px;margin-top:14px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)}
+.ct{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mu);margin-bottom:14px;font-family:'Rajdhani',sans-serif}
+
+/* ── DEVICE BAR ── */
+.devbar{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-top:12px;background:var(--s1);border:1px solid var(--b);border-radius:var(--r);cursor:pointer;transition:var(--tr);position:relative;overflow:hidden}
+.devbar::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,240,255,.03),transparent);pointer-events:none}
+.devbar:active{opacity:.75;transform:scale(.99)}
+.ddot{width:9px;height:9px;border-radius:50%;background:var(--mu);flex-shrink:0;transition:var(--tr)}
+.ddot.on{background:var(--ok);box-shadow:0 0 10px rgba(0,230,118,.6)}
+.ddot.off{background:var(--err);box-shadow:0 0 8px rgba(255,69,105,.4)}
+.dinfo{flex:1;min-width:0}
+.dname{font-size:16px;font-weight:600;font-family:'Rajdhani',sans-serif;letter-spacing:.5px}
+.dmeta{font-size:13px;color:var(--mu);margin-top:1px}
+
+/* ── BRIGHTNESS ROW ── */
+.bwrap{flex:1}
+.blabel{display:flex;justify-content:space-between;font-size:14px;color:var(--mu);margin-bottom:8px}
+.blabel span:last-child{font-family:'Rajdhani',sans-serif;color:var(--tx);font-weight:600}
+
+/* ── SLIDERS ── */
+.sl{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;outline:none;cursor:pointer;border:none}
+.sl::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:white;box-shadow:0 2px 12px rgba(0,0,0,.6),0 0 0 2px rgba(255,255,255,.2);cursor:pointer}
+.sl-bri{background:linear-gradient(90deg,#0a0a14,rgba(255,255,255,.8))}
+.sl-spd{background:linear-gradient(90deg,#0a0a14,var(--acc))}
+.sl-int{background:linear-gradient(90deg,#0a0a14,var(--acc2))}
+.sl-whi{background:linear-gradient(90deg,rgba(0,0,0,0),white)}
+.sl-temp{background:linear-gradient(90deg,#1e50ff,#ffffff,#ff8c00,#ff4500)}
+
+/* ── COLOR SACHETS ── */
+.color-sachets{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.sachet{width:26px;height:26px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s,box-shadow .15s;flex-shrink:0}
+.sachet:hover{transform:scale(1.18);border-color:rgba(255,255,255,.5);box-shadow:0 0 8px rgba(255,255,255,.3)}
+.sachet:active{transform:scale(.9)}
+.sachet.active{border-color:white;box-shadow:0 0 10px rgba(255,255,255,.5)}
+.sachet-grad{border-radius:10px;width:36px}
+.sl-tr{background:linear-gradient(90deg,#0a0a14,var(--acc3))}
+.srow{margin-bottom:14px}.srow:last-child{margin-bottom:0}
+.slabel{display:flex;justify-content:space-between;font-size:14px;color:var(--mu);margin-bottom:8px}
+.slabel span:last-child{font-family:'Rajdhani',sans-serif;color:var(--tx);font-weight:600}
+
+/* ── COLOR WHEEL ── */
+#colorCanvas{border-radius:50%;cursor:crosshair;flex-shrink:0;touch-action:none;box-shadow:0 0 30px rgba(0,240,255,.15),0 4px 20px rgba(0,0,0,.6)}
+.cwrap{display:flex;align-items:center;gap:14px}
+.cctrl{flex:1;display:flex;flex-direction:column;gap:12px}
+.crow{display:flex;gap:8px}
+.csw{flex:1;height:36px;border-radius:10px;border:1px solid var(--b);cursor:pointer;transition:var(--tr);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:1px;font-family:'Rajdhani',sans-serif;position:relative;overflow:hidden}
+.csw.active{border-color:rgba(255,255,255,.4);color:white}
+.csw.active::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.08)}
+.hlabel{font-size:13px;color:var(--mu);margin-bottom:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 13px;border-radius:20px;border:1px solid var(--b);background:var(--s2);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--mu);transition:var(--tr)}
+.chip:active{transform:scale(.93);color:var(--tx)}
+
+/* ── EFFECTS + PALETTES TAB (split) ── */
+.split-tab{display:flex;gap:10px;margin-top:12px;flex:1;min-height:0}
+.split-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px;min-height:0}
+.split-hdr{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mu);font-family:'Rajdhani',sans-serif;padding:10px 14px 8px;border-bottom:1px solid var(--b);flex-shrink:0}
+.split-card{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);overflow:hidden;position:relative;display:flex;flex-direction:column;flex:1;min-height:0}
+.split-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);z-index:1}
+
+.sinput{padding:8px 12px;background:var(--s2);border:1px solid var(--b);border-radius:var(--r2);color:var(--tx);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:var(--tr);margin:10px 14px 8px;width:calc(100% - 28px);display:block;flex-shrink:0}
+.sinput:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,240,255,.08)}
+.sinput::placeholder{color:var(--mu)}
+
+/* Effects grid — single column in split view */
+.egrid{display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;scrollbar-width:none;padding:0 10px 10px;min-height:0}
+.egrid::-webkit-scrollbar{display:none}
+.echip{padding:9px 12px;border-radius:10px;border:1px solid transparent;background:var(--s2);font-size:14px;font-weight:500;cursor:pointer;transition:var(--tr);white-space:normal;word-break:break-word;color:var(--mu);flex-shrink:0}
+.echip.active{border-color:var(--acc2);background:rgba(191,95,255,.12);color:var(--tx);box-shadow:0 0 12px rgba(191,95,255,.2)}
+.echip:active{transform:scale(.97)}
+
+/* Palette list — in split view */
+.plist{display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;scrollbar-width:none;padding:0 10px 10px;min-height:0}
+.plist::-webkit-scrollbar{display:none}
+.pitem{padding:0;border-radius:10px;border:1px solid transparent;background:var(--s2);cursor:pointer;transition:var(--tr);overflow:hidden;height:37px;flex-shrink:0}
+.pitem.active{border-color:var(--acc);box-shadow:0 0 12px rgba(0,240,255,.2)}
+.pitem:active{transform:scale(.97)}
+.pprev{width:100%;height:100%;border-radius:0;display:block}
+
+/* speed/intensity sliders in fx tab */
+.ctrl-card{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);padding:12px 14px;margin-top:10px;flex-shrink:0}
+
+/* ── DEVICES ── */
+.sec{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mu);padding:14px 0 8px;font-family:'Rajdhani',sans-serif}
+.dcard{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:var(--r);border:1px solid var(--b);background:var(--s2);margin-bottom:8px;cursor:pointer;transition:var(--tr);position:relative;overflow:hidden}
+.dcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--mu);border-radius:0 2px 2px 0;transition:var(--tr)}
+.dcard.sel::before{background:var(--acc);box-shadow:0 0 10px var(--acc-glow)}
+.dcard.onl::before{background:var(--ok)}
+.dcard:active{transform:scale(.98)}
+.dcinfo{flex:1;min-width:0}
+.dcname{font-size:16px;font-weight:600;font-family:'Rajdhani',sans-serif;letter-spacing:.3px}
+.dcip{font-size:13px;color:var(--mu);margin-top:2px}
+.dcleds{font-size:13px;color:var(--mu);margin-top:1px}
+.dcbtns{display:flex;gap:6px}
+.mbtn{width:30px;height:30px;border-radius:8px;border:1px solid var(--b);background:var(--s1);color:var(--mu);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:var(--tr)}
+.mbtn:active{color:var(--tx);background:var(--s2)}
+.scanbtn{width:100%;padding:13px;border-radius:var(--r);border:1px dashed rgba(0,240,255,.3);background:transparent;color:var(--acc);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:8px;transition:var(--tr);margin-bottom:0}
+.scanbtn:active{transform:scale(.98)}.scanbtn:disabled{opacity:.4;cursor:not-allowed}
+.scanbtn #scanIcon svg{transition:var(--tr)}
+.scanbtn.scanning #scanIcon svg{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.scanprog{height:2px;border-radius:2px;background:var(--s2);margin-top:10px;overflow:hidden;display:none}
+.scanbar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .2s}
+.scanst{font-size:11px;color:var(--mu);text-align:center;margin-top:8px;display:none;font-family:'Rajdhani',sans-serif;letter-spacing:.5px;min-height:16px}
+.addrow{display:flex;gap:8px}
+.addip{flex:1;padding:11px 12px;background:var(--s2);border:1px solid var(--b);border-radius:var(--r2);color:var(--tx);font-size:13px;outline:none;transition:var(--tr)}
+.addip:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,240,255,.08)}
+.addip::placeholder{color:var(--mu);font-size:13px}
+.addbtn{padding:11px 18px;border-radius:var(--r2);border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#070710;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:var(--tr);white-space:nowrap}
+.addbtn:active{transform:scale(.95);opacity:.9}
+
+/* ── ADVANCED ── */
+.infobox{font-size:13px;color:var(--mu);line-height:2.2}
+.inforow{display:flex;justify-content:space-between}
+.inforow span:last-child{color:var(--tx);text-align:right;font-family:'Rajdhani',sans-serif;font-weight:600}
+.tog{position:relative;display:inline-block;width:42px;height:23px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.togtrack{position:absolute;inset:0;background:var(--s2);border-radius:12px;border:1px solid var(--b);cursor:pointer;transition:var(--tr)}
+.togthumb{position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:var(--mu);transition:var(--tr)}
+.tog input:checked~.togtrack{background:rgba(0,240,255,.2);border-color:var(--acc)}
+.tog input:checked~.togthumb{transform:translateX(19px);background:var(--acc);box-shadow:0 0 8px var(--acc-glow)}
+.togrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
+.togrow+.togrow{border-top:1px solid var(--b)}
+.fpsgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.fchip{padding:9px 4px;border-radius:var(--r2);border:1px solid var(--b);background:var(--s2);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;text-align:center;cursor:pointer;transition:var(--tr);color:var(--mu)}
+.fchip.active{border-color:var(--acc);background:rgba(0,240,255,.1);color:var(--acc);box-shadow:0 0 10px var(--acc-glow)}
+.fchip:active{transform:scale(.95)}
+/* Advanced Settings chips */
+.advsetchips{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.aschip{padding:9px 4px;border-radius:var(--r2);border:1px solid var(--b);background:var(--s2);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;text-align:center;cursor:pointer;transition:var(--tr);color:var(--mu)}
+.aschip.aschip-active,.aschip:hover{border-color:var(--acc);background:rgba(0,240,255,.1);color:var(--acc)}
+.aschip.aschip-acc{border-color:rgba(0,240,255,.3);color:var(--acc)}
+.aschip.aschip-acc2{border-color:rgba(191,95,255,.3);color:var(--acc2)}
+.aschip:active{transform:scale(.95)}
+/* Advanced buttons */
+.advbtn{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px 14px;border-radius:var(--r2);border:1px solid var(--b);background:var(--s2);color:var(--mu);font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;letter-spacing:.5px;cursor:pointer;transition:var(--tr);width:100%}
+.advbtn:hover{border-color:var(--acc);color:var(--acc);background:rgba(0,240,255,.06)}
+.advbtn:active{transform:scale(.97)}
+.advbtn-danger{color:var(--err);border-color:rgba(255,69,105,.2)}
+.advbtn-danger:hover{border-color:var(--err);background:rgba(255,69,105,.08);color:var(--err)}
+/* Segment row in advanced */
+.ddot.connecting{background:var(--acc);box-shadow:0 0 8px var(--acc-glow);animation:connectPulse 1s ease infinite}
+@keyframes connectPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
+.dcard-conn{font-size:10px;color:var(--acc);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:.5px;margin-top:2px}gap:10px;padding:10px 12px;border-radius:var(--r2);border:1px solid var(--b);background:var(--s2)}
+.segrow-id{width:22px;height:22px;border-radius:7px;background:var(--s1);border:1px solid var(--b);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'Rajdhani',sans-serif;color:var(--mu);flex-shrink:0}
+.segrow-info{flex:1;min-width:0}
+.segrow-name{font-size:13px;font-weight:600;font-family:'Rajdhani',sans-serif;color:var(--tx)}
+.segrow-meta{font-size:10px;color:var(--mu);margin-top:2px}
+.segrow-dot{width:8px;height:8px;border-radius:50%;background:var(--mu);flex-shrink:0}
+.segrow-dot.on{background:var(--ok);box-shadow:0 0 6px rgba(0,230,118,.6)}
+/* Preset row */
+.prow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r2);border:1px solid var(--b);background:var(--s2);cursor:pointer;transition:var(--tr)}
+.preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.preset-sq{aspect-ratio:1;border-radius:var(--r2);border:1px solid var(--b);background:var(--s2);cursor:pointer;transition:var(--tr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px;position:relative;overflow:hidden}
+.preset-sq::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,240,255,.04),transparent);pointer-events:none}
+.preset-sq:active{transform:scale(.93);opacity:.8}
+.preset-sq.active{border-color:var(--acc);background:rgba(0,240,255,.08);box-shadow:0 0 10px rgba(0,240,255,.15)}
+.preset-sq-id{font-size:9px;color:var(--mu);font-family:'Rajdhani',sans-serif;font-weight:700;position:absolute;top:5px;left:6px}
+.preset-sq-name{font-size:11px;font-weight:600;color:var(--tx);text-align:center;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.preset-sq-save{aspect-ratio:1;border-radius:var(--r2);border:1px dashed rgba(0,240,255,.3);background:transparent;cursor:pointer;transition:var(--tr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--acc);font-size:9px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:.5px}
+.preset-sq-save:active{transform:scale(.93)}
+.preset-sq-save svg{opacity:.7}
+.preset-sq-ghost{aspect-ratio:1;visibility:hidden;pointer-events:none}
+.prow:active{transform:scale(.98);opacity:.8}
+.prow-id{font-size:10px;color:var(--mu);font-family:'Rajdhani',sans-serif;flex-shrink:0;width:18px;text-align:right}
+.prow-name{flex:1;font-size:13px;font-weight:500;color:var(--tx)}
+.prow-ql{font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(0,240,255,.1);color:var(--acc);font-family:'Rajdhani',sans-serif;font-weight:700;border:1px solid rgba(0,240,255,.2)}
+
+/* ── CONFIG CATEGORIES ── */
+.cfg-section{margin-top:10px}
+.cfg-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--s2);border:1px solid var(--b);border-radius:var(--r2);cursor:pointer;transition:var(--tr);user-select:none}
+.cfg-hdr:active{opacity:.8}
+.cfg-hdr-left{display:flex;align-items:center;gap:9px}
+.cfg-hdr-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cfg-hdr-title{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:.5px;color:var(--tx)}
+.cfg-hdr-arrow{transition:transform var(--tr);color:var(--mu);font-size:11px}
+.cfg-hdr.open .cfg-hdr-arrow{transform:rotate(180deg)}
+.cfg-body{display:none;padding:14px 0 6px}
+.cfg-body.open{display:block}
+.cfg-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--b)}
+.cfg-row:last-child{border-bottom:none}
+.cfg-row-label{font-size:15px;color:var(--tx);flex:1;padding-right:10px}
+.cfg-row-sub{font-size:12px;color:var(--mu);margin-top:2px}
+.cfg-input{background:var(--s2);border:1px solid var(--b);border-radius:8px;color:var(--tx);font-size:15px;padding:8px 12px;outline:none;transition:var(--tr);font-family:'Inter',sans-serif}
+.cfg-input:focus{border-color:var(--acc);box-shadow:0 0 0 2px rgba(0,240,255,.08)}
+.cfg-input-sm{width:78px;text-align:right}
+.cfg-input-md{width:140px}
+.cfg-input-full{width:100%;box-sizing:border-box}
+.cfg-select{background:var(--s2);border:1px solid var(--b);border-radius:8px;color:var(--tx);font-size:13px;padding:7px 8px;outline:none;cursor:pointer;font-family:'Inter',sans-serif;-webkit-appearance:none;appearance:none}
+.cfg-select:focus{border-color:var(--acc)}
+.cfg-save-btn{width:100%;margin-top:14px;padding:14px;border-radius:var(--r2);border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#070710;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:var(--tr)}
+.cfg-save-btn:active{opacity:.85;transform:scale(.98)}
+.cfg-group-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mu);font-family:'Rajdhani',sans-serif;padding:10px 0 6px;margin-top:4px}
+.cfg-note{font-size:13px;color:var(--mu);line-height:1.5;padding:6px 0 4px}
+.cfg-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.cfg-chip{padding:5px 11px;border-radius:20px;border:1px solid var(--b);background:var(--s2);font-size:11px;font-weight:500;cursor:pointer;color:var(--mu);transition:var(--tr);font-family:'Rajdhani',sans-serif}
+.cfg-chip.active{border-color:var(--acc);color:var(--acc);background:rgba(0,240,255,.08)}
+.cfg-chip:active{transform:scale(.93)}
+.cfg-2col{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.cfg-field{display:flex;flex-direction:column;gap:4px}
+.cfg-field label{font-size:10px;color:var(--mu);font-family:'Rajdhani',sans-serif;letter-spacing:.5px;text-transform:uppercase}
+
+/* ── SOUND REACTIVE ── */
+.sr-fx{padding:11px 6px 9px;border-radius:var(--r2);border:1.5px solid var(--b);background:var(--s2);cursor:pointer;text-align:center;transition:var(--tr);color:var(--tx);font-family:'Inter',sans-serif}
+.sr-fx:active{transform:scale(.93)}
+.sr-fx.active{border-color:var(--acc2);background:rgba(191,95,255,.12);box-shadow:0 0 12px rgba(191,95,255,.2)}
+.sr-fx-ico{width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 3px;color:var(--mu);transition:var(--tr)}
+.sr-fx.active .sr-fx-ico{color:var(--acc2)}
+.sr-fx-nm{font-size:13px;font-weight:600;display:block;margin-top:3px;color:var(--tx)}
+.sr-fx-ds{font-size:11px;color:var(--mu);display:block;margin-top:1px;line-height:1.3}
+.sr-ctab{flex:1;padding:8px 4px;border-radius:var(--r2);font-size:13px;font-weight:600;border:1px solid var(--b);background:var(--s2);color:var(--mu);cursor:pointer;text-align:center;transition:var(--tr);font-family:'Rajdhani',sans-serif;letter-spacing:.5px}
+.sr-ctab.active{border-color:var(--acc);color:var(--acc);background:rgba(0,240,255,.08)}
+.sr-panel{display:none}.sr-panel.active{display:block}
+.sr-swatch{width:30px;height:30px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;flex-shrink:0;transition:var(--tr)}
+.sr-swatch:active{transform:scale(.86)}
+.sr-swatch.active{border-color:white;transform:scale(1.15)}
+.sr-cust-wrap{width:30px;height:30px;border-radius:50%;overflow:hidden;border:2.5px solid var(--b);cursor:pointer;position:relative;flex-shrink:0}
+.sr-slot{width:40px;height:40px;border-radius:var(--r2);border:2px dashed var(--b);cursor:pointer;position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--mu);transition:var(--tr)}
+.sr-slot.filled{border-style:solid;border-color:transparent}
+.sr-slot-del{position:absolute;top:-6px;right:-6px;background:var(--err);color:#fff;border-radius:50%;width:15px;height:15px;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer}
+.sr-slot.filled .sr-slot-del{display:flex}
+.sr-pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:5px 16px;border-radius:99px;background:var(--s2);border:1px solid var(--b);font-family:'Rajdhani',sans-serif;letter-spacing:.5px}
+.sr-dot{width:7px;height:7px;border-radius:50%;background:var(--mu)}
+.sr-pill.active .sr-dot{background:var(--ok);animation:pulse 1.2s infinite}
+.sr-pill.error .sr-dot{background:var(--err)}
+
+
+.wifi-net:active{background:rgba(0,240,255,.06);border-color:var(--acc)}
+.wifi-net-name{flex:1;font-size:12px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wifi-net-rssi{font-size:10px;color:var(--mu);font-family:'Rajdhani',sans-serif;flex-shrink:0}
+.wifi-net-lock{flex-shrink:0;color:var(--mu)}
+.wifi-net-bars{display:flex;align-items:flex-end;gap:2px;height:14px;flex-shrink:0}
+.wifi-net-bars span{width:3px;border-radius:1px;background:var(--mu)}
+.wifi-net.selected{border-color:var(--acc);background:rgba(0,240,255,.06)}
+.wifi-net.selected .wifi-net-name{color:var(--acc)}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:72px;left:50%;transform:translateX(-50%) translateY(-8px);padding:10px 20px;border-radius:12px;background:var(--s2);border:1px solid var(--b2);font-size:13px;font-weight:500;color:var(--tx);z-index:200;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;font-family:'Rajdhani',sans-serif;letter-spacing:.5px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── LEDMAP TOOLBAR ── */
+.lm-tbtn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;border-right:1px solid var(--b);color:var(--mu);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;transition:all .12s}
+.lm-tbtn:last-child{border-right:none}
+.lm-tbtn:active{background:var(--b)}
+.lm-tbtn.active{color:var(--acc);background:rgba(0,240,255,.07)}
+
+/* ── LEDMAP SHEET / MODAL ── */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+.sheet-overlay.open{opacity:1;pointer-events:all}
+.sheet{position:absolute;bottom:0;left:0;right:0;background:var(--s1);border:1px solid var(--b);border-bottom:none;border-radius:22px 22px 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.1,.64,1)}
+.sheet-overlay.open .sheet{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--b2);border-radius:2px;margin:12px auto 0}
+.sheet-head{display:flex;align-items:center;gap:12px;padding:16px 20px 4px}
+.sheet-color-bar{width:4px;height:30px;border-radius:3px;flex-shrink:0}
+.sheet-title{font-size:17px;font-weight:700;color:var(--tx);flex:1;font-family:'Rajdhani',sans-serif}
+.sheet-id-badge{font-family:'Rajdhani',sans-serif;font-size:11px;color:var(--mu);background:var(--s2);border:1px solid var(--b);padding:2px 8px;border-radius:10px}
+.sheet-body{padding:16px 20px 28px}
+.field-row{margin-bottom:14px}
+.field-label{font-size:10px;color:var(--mu);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;font-family:'Rajdhani',sans-serif}
+.field-input{width:100%;background:var(--s2);border:1.5px solid var(--b);color:var(--tx);font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;padding:10px 14px;border-radius:9px;outline:none}
+.field-input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,240,255,.1)}
+.led-row{display:grid;grid-template-columns:1fr 30px 1fr;gap:8px;align-items:end;margin-bottom:10px}
+.led-col label{display:block;font-size:10px;color:var(--mu);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;font-family:'Rajdhani',sans-serif}
+.led-big{width:100%;background:var(--s2);border:2px solid var(--b);color:var(--tx);font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;padding:12px 8px;border-radius:12px;text-align:center;outline:none;-moz-appearance:textfield}
+.led-big::-webkit-outer-spin-button,.led-big::-webkit-inner-spin-button{-webkit-appearance:none}
+.led-big.s:focus{border-color:var(--ok);box-shadow:0 0 0 3px rgba(0,230,118,.12)}
+.led-big.e:focus{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.12)}
+.led-arrow-mid{font-size:20px;color:var(--mu);text-align:center;padding-bottom:14px;line-height:1}
+.led-hint{text-align:center;font-size:12px;color:var(--mu);font-family:'Rajdhani',sans-serif;min-height:18px;margin-bottom:18px}
+.led-hint .hi{color:var(--acc);font-weight:700}
+.sheet-actions{display:flex;gap:10px}
+.btn{flex:1;padding:13px;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .12s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--acc);color:#070710}
+.btn-ghost{background:var(--s2);color:var(--tx);border:1px solid var(--b)}
+.btn-danger{background:var(--err);color:#fff}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:flex-end;z-index:300;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--s1);border:1px solid var(--b);border-bottom:none;border-radius:16px 16px 0 0;width:100%;padding:20px 16px 32px;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(--b2);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:14px;font-weight:700;letter-spacing:1px;margin-bottom:10px;color:var(--acc);font-family:'Rajdhani',sans-serif}
+.modal-json{background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:12px;font-family:'Rajdhani',sans-serif;font-size:11px;color:var(--ok);word-break:break-all;max-height:110px;overflow-y:auto;margin-bottom:16px;line-height:1.5}
+.modal-actions{display:flex;gap:10px}
+/* Ledmap line items */
+.lm-line-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .1s}
+.lm-line-item:active,.lm-line-item.selected{background:rgba(0,240,255,.06)}
+.lm-line-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.lm-line-meta{flex:1;min-width:0}
+.lm-line-name{font-size:13px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Rajdhani',sans-serif}
+.lm-line-range{font-size:11px;color:var(--mu);font-family:'Rajdhani',sans-serif}
+.lm-line-range.set{color:var(--acc)}
+.lm-edit-btn{background:none;border:1px solid var(--b);border-radius:4px;color:var(--mu);cursor:pointer;padding:4px 9px;font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.lm-del-btn{background:none;border:none;color:var(--mu);cursor:pointer;padding:4px;display:flex;border-radius:4px}
+.lm-del-btn:active{color:var(--err);background:rgba(255,69,105,.1)}
+
+/* ── MISC ── */
+.ldot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 2s ease infinite;display:inline-block;box-shadow:0 0 6px var(--ok)}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.4}}
+.empty{text-align:center;padding:36px 20px;color:var(--mu)}
+.empty .ei{font-size:40px;margin-bottom:14px}
+.empty h3{font-size:15px;color:var(--tx);margin-bottom:8px;font-family:'Rajdhani',sans-serif;letter-spacing:.5px}
+.empty p{font-size:12px;line-height:1.7}
+.hexlabel{font-size:11px;color:var(--mu);font-family:'Rajdhani',sans-serif;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="amb"></div>
+<div id="app">
+
+  <div class="app-inner">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="logo">
+      <span class="logo-pro">PRO</span><span class="logo-wled">WLED</span>
+    </div>
+    <div class="hdr-right">
+      <div id="connStatus">No device</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ══ CONTROL ══ -->
+    <div class="panel active" id="panel-control">
+      <div class="devbar" id="devBar">
+        <div class="ddot" id="mainDot"></div>
+        <div class="dinfo">
+          <div class="dname" id="mainName">No device selected</div>
+          <div class="dmeta" id="mainMeta">Tap Devices tab to add</div>
+        </div>
+        <div style="color:var(--mu);font-size:18px">›</div>
+      </div>
+
+      <!-- Brightness -->
+      <div class="card" style="margin-top:12px">
+        <div class="ct">Brightness</div>
+        <div class="blabel"><span style="font-size:12px;color:var(--mu)">Level</span><span id="briVal">128</span></div>
+        <input class="sl sl-bri" type="range" id="briSlider" min="1" max="255" value="128"
+          oninput="document.getElementById('briVal').textContent=this.value"
+          onchange="api({bri:+this.value})">
+      </div>
+
+      <!-- Color -->
+      <div class="card">
+        <div class="ct">Color</div>
+
+        <!-- Full-width wheel -->
+        <div style="display:flex;justify-content:center;margin-bottom:14px">
+          <canvas id="colorCanvas" width="220" height="220"></canvas>
+        </div>
+
+        <!-- Swatch selectors + hex -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div class="csw active" id="sw0" onclick="selSwatch(0)" style="flex:1">PRI</div>
+          <div class="csw" id="sw1" onclick="selSwatch(1)" style="flex:1">SEC</div>
+          <div class="csw" id="sw2" onclick="selSwatch(2)" style="flex:1">TER</div>
+          <div id="hexLabel" class="hexlabel" style="flex:1;text-align:center;font-size:13px;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--tx)">#FF6B35</div>
+        </div>
+
+        <!-- Temperature slider -->
+        <div style="margin-bottom:14px">
+          <div class="slabel"><span style="font-size:12px">Temperature</span><span id="tempVal" style="font-size:12px">Neutral</span></div>
+          <input class="sl sl-temp" type="range" id="tempSlider" min="0" max="255" value="128"
+            oninput="onTemp(this.value);document.getElementById('tempVal').textContent=this.value<118?'Cool':this.value>138?'Warm':'Neutral'"
+            onchange="onTemp(this.value)">
+        </div>
+
+        <!-- Color sachets -->
+        <div class="hlabel" style="margin-bottom:8px">Solid Colors</div>
+        <div class="color-sachets" style="margin-bottom:14px">
+          <div class="sachet" title="Pure White" onclick="setColor(255,255,255)" style="background:#ffffff"></div>
+          <div class="sachet" title="Warm White" onclick="setColor(255,244,229)" style="background:#fff4e5"></div>
+          <div class="sachet" title="Soft White" onclick="setColor(255,228,196)" style="background:#ffe4c4"></div>
+          <div class="sachet" title="Candle" onclick="setColor(255,200,130)" style="background:#ffc882"></div>
+          <div class="sachet" title="Sunrise" onclick="setColor(255,175,80)" style="background:#ffaf50"></div>
+          <div class="sachet" title="Peach" onclick="setColor(255,185,140)" style="background:#ffb98c"></div>
+          <div class="sachet" title="Lavender" onclick="setColor(180,140,255)" style="background:#b48cff"></div>
+          <div class="sachet" title="Mint" onclick="setColor(130,255,200)" style="background:#82ffc8"></div>
+          <div class="sachet" title="Sky Blue" onclick="setColor(100,200,255)" style="background:#64c8ff"></div>
+          <div class="sachet" title="Blush" onclick="setColor(255,160,180)" style="background:#ffa0b4"></div>
+          <div class="sachet" title="Red" onclick="setColor(255,0,0)" style="background:#ff0000"></div>
+          <div class="sachet" title="Coral" onclick="setColor(255,80,60)" style="background:#ff503c"></div>
+          <div class="sachet" title="Orange" onclick="setColor(255,140,0)" style="background:#ff8c00"></div>
+          <div class="sachet" title="Lime" onclick="setColor(80,255,80)" style="background:#50ff50"></div>
+          <div class="sachet" title="Cyan" onclick="setColor(0,240,255)" style="background:#00f0ff"></div>
+          <div class="sachet" title="Blue" onclick="setColor(30,80,255)" style="background:#1e50ff"></div>
+          <div class="sachet" title="Violet" onclick="setColor(160,0,255)" style="background:#a000ff"></div>
+          <div class="sachet" title="Magenta" onclick="setColor(255,0,200)" style="background:#ff00c8"></div>
+        </div>
+
+        <!-- Preset Gradients -->
+        <div class="hlabel" style="margin-bottom:8px">Preset Gradients</div>
+        <div class="color-sachets" style="margin-bottom:16px">
+          <div class="sachet sachet-grad" title="Sunset" onclick="setSachetGrad('sunset')" style="background:linear-gradient(135deg,#ff6b35,#ff0080,#7b2fff)"></div>
+          <div class="sachet sachet-grad" title="Aurora" onclick="setSachetGrad('aurora')" style="background:linear-gradient(135deg,#00f0ff,#00e676,#bf5fff)"></div>
+          <div class="sachet sachet-grad" title="Fire" onclick="setSachetGrad('fire')" style="background:linear-gradient(135deg,#ff0000,#ff8c00,#ffff00)"></div>
+          <div class="sachet sachet-grad" title="Ocean" onclick="setSachetGrad('ocean')" style="background:linear-gradient(135deg,#0033ff,#00bfff,#00e5ff)"></div>
+          <div class="sachet sachet-grad" title="Candy" onclick="setSachetGrad('candy')" style="background:linear-gradient(135deg,#ff80ab,#e040fb,#64b5f6)"></div>
+          <div class="sachet sachet-grad" title="Forest" onclick="setSachetGrad('forest')" style="background:linear-gradient(135deg,#1b5e20,#66bb6a,#b2dfdb)"></div>
+        </div>
+
+        <!-- Custom Gradient Mixer -->
+        <div class="hlabel" style="margin-bottom:8px">Custom Gradient</div>
+        <div id="customGradPreview" style="height:12px;border-radius:6px;margin-bottom:12px;background:linear-gradient(90deg,#ff0000,#7b00ff,#0000ff);transition:background .3s"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div id="cgStop0" onclick="cgPickSlot(0)" style="width:44px;height:44px;border-radius:12px;background:#ff0000;border:2px solid transparent;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>
+            <span style="font-size:9px;color:var(--mu);font-family:'Rajdhani',sans-serif;letter-spacing:.5px">START</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div id="cgStop1" onclick="cgPickSlot(1)" style="width:44px;height:44px;border-radius:12px;background:#7b00ff;border:2px solid transparent;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>
+            <span style="font-size:9px;color:var(--mu);font-family:'Rajdhani',sans-serif;letter-spacing:.5px">MID</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div id="cgStop2" onclick="cgPickSlot(2)" style="width:44px;height:44px;border-radius:12px;background:#0000ff;border:2px solid transparent;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>
+            <span style="font-size:9px;color:var(--mu);font-family:'Rajdhani',sans-serif;letter-spacing:.5px">END</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+            <button onclick="applyCustomGrad()" style="width:44px;height:44px;border-radius:12px;border:1px solid var(--acc);background:rgba(0,240,255,.1);color:var(--acc);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <span style="font-size:9px;color:var(--acc);font-family:'Rajdhani',sans-serif;letter-spacing:.5px">APPLY</span>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--mu);line-height:1.5">Tap a stop to select it, then pick color from wheel or sachets above</div>
+      </div>
+
+      <!-- Transition -->
+      <div class="card">
+        <div class="ct">Transition</div>
+        <div class="slabel"><span>Duration</span><span id="trVal">700ms</span></div>
+        <input class="sl sl-tr" type="range" id="trSlider" min="0" max="70" value="7"
+          oninput="document.getElementById('trVal').textContent=this.value*100+'ms'"
+          onchange="api({transition:+this.value})">
+      </div>
+
+
+    </div>
+
+    <!-- ══ EFFECTS + PALETTES (combined) ══ -->
+    <div class="panel" id="panel-fx">
+      <div class="split-tab">
+        <!-- Effects column -->
+        <div class="split-col">
+          <div class="split-card">
+            <div class="split-hdr">Effects</div>
+            <input class="sinput" type="text" placeholder="Search…" oninput="filterFx(this.value)">
+            <div class="egrid" id="fxGrid"><div style="color:var(--mu);font-size:12px;text-align:center;padding:20px 10px">Connect a device first</div></div>
+          </div>
+        </div>
+        <!-- Palettes column -->
+        <div class="split-col">
+          <div class="split-card">
+            <div class="split-hdr">Palettes</div>
+            <input class="sinput" type="text" placeholder="Search…" oninput="filterPal(this.value)">
+            <div class="plist" id="palList"><div style="color:var(--mu);font-size:12px;text-align:center;padding:20px 10px">Connect a device first</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Full-width speed/intensity below both columns -->
+      <div class="ctrl-card">
+        <div class="srow">
+          <div class="slabel"><span style="display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Speed</span><span id="spdVal">128</span></div>
+          <input class="sl sl-spd" type="range" id="spdSlider" min="0" max="255" value="128"
+            oninput="document.getElementById('spdVal').textContent=this.value"
+            onchange="api({seg:[{sx:+this.value}]})">
+        </div>
+        <div class="srow">
+          <div class="slabel"><span style="display:flex;align-items:center;gap:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--acc2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>Intensity</span><span id="intVal">128</span></div>
+          <input class="sl sl-int" type="range" id="intSlider" min="0" max="255" value="128"
+            oninput="document.getElementById('intVal').textContent=this.value"
+            onchange="api({seg:[{ix:+this.value}]})">
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PRESETS ══ -->
+    <div class="panel" id="panel-presets">
+      <div class="card" style="margin-top:12px">
+        <div class="ct"><span style="display:flex;align-items:center;gap:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Presets</span></div>
+        <div class="preset-grid" id="presetList"></div>
+      </div>
+    </div>
+
+    <!-- ══ ADVANCED ══ -->
+    <div class="panel" id="panel-advanced">
+
+      <!-- ── LIVE CONTROLS (always visible) ── -->
+      <div class="card" style="margin-top:12px">
+        <div class="ct"><span style="display:flex;align-items:center;gap:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>Brightness</span></div>
+        <div class="srow">
+          <div class="slabel"><span>Global Brightness</span><span id="advBriVal" style="font-family:'Rajdhani',sans-serif;font-weight:600">128</span></div>
+          <input class="sl sl-bri" type="range" id="advBriSlider" min="1" max="255" value="128"
+            oninput="document.getElementById('advBriVal').textContent=this.value"
+            onchange="api({bri:+this.value})">
+        </div>
+      </div>
+
+      <!-- ── NIGHTLIGHT ── -->
+      <div class="card">
+        <div class="ct"><span style="display:flex;align-items:center;gap:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--acc2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>Nightlight Timer</span></div>
+        <div class="togrow"><span style="font-size:13px">Enable Timer</span><label class="tog"><input type="checkbox" id="nlEnable" onchange="setNightlight()"><span class="togtrack"></span><span class="togthumb"></span></label></div>
+        <div class="togrow"><span style="font-size:13px">Fade Mode</span><label class="tog"><input type="checkbox" id="nlFade" onchange="setNightlight()"><span class="togtrack"></span><span class="togthumb"></span></label></div>
+        <div class="srow" style="margin-top:12px">
+          <div class="slabel"><span>Duration</span><span id="nlDurVal" style="font-family:'Rajdhani',sans-serif;font-weight:600">60 min</span></div>
+          <input class="sl" style="background:linear-gradient(90deg,#0a0a14,var(--acc2))" type="range" id="nlDurSlider" min="1" max="255" value="60"
+            oninput="document.getElementById('nlDurVal').textContent=this.value+' min'"
+            onchange="setNightlight()">
+        </div>
+        <div class="srow">
+          <div class="slabel"><span>Target Brightness</span><span id="nlTarVal" style="font-family:'Rajdhani',sans-serif;font-weight:600">0</span></div>
+          <input class="sl sl-bri" type="range" id="nlTarSlider" min="0" max="255" value="0"
+            oninput="document.getElementById('nlTarVal').textContent=this.value"
+            onchange="setNightlight()">
+        </div>
+      </div>
+
+      <!-- ── TRANSITION ── -->
+      <div class="card">
+        <div class="ct"><span style="display:flex;align-items:center;gap:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--acc3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Transition</span></div>
+        <div class="srow">
+          <div class="slabel"><span>Crossfade Time</span><span id="trVal" style="font-family:'Rajdhani',sans-serif;font-weight:600">0.7 s</span></div>
+          <input class="sl sl-tr" type="range" id="trSlider" min="0" max="255" value="7"
+            oninput="document.getElementById('trVal').textContent=(this.value/10).toFixed(1)+' s'"
+            onchange="api({transition:+this.value})">
+        </div>
+        <div class="advsetchips" style="margin-top:10px">
+          <div class="aschip" onclick="setTrans(0)">0s</div>
+          <div class="aschip" onclick="setTrans(7)">0.7s</div>
+          <div class="aschip" onclick="setTrans(15)">1.5s</div>
+          <div class="aschip" onclick="setTrans(30)">3s</div>
+        </div>
+      </div>
+
+      <!-- ── SEGMENTS ── -->
+      <div class="card">
+        <div class="ct"><span style="display:flex;align-items:center;gap:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--acc3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Segments</span></div>
+        <div id="segList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"><div style="color:var(--mu);font-size:12px;text-align:center;padding:10px 0">No device connected</div></div>
+        <button class="advbtn advbtn-danger" onclick="confirmResetSegs()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.96"/></svg>
+          Reset Segments
+        </button>
+      </div>
+
+      <!-- ── FPS ── -->
+      <div class="card">
+        <div class="ct"><span style="display:flex;align-items:center;gap:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Performance</span></div>
+        <div class="srow">
+          <div class="slabel"><span>Target FPS</span><span id="fpsVal" style="font-family:'Rajdhani',sans-serif;font-weight:600">60</span></div>
+          <input class="sl sl-spd" type="range" id="fpsSlider" min="1" max="120" value="60"
+            oninput="document.getElementById('fpsVal').textContent=this.value"
+            onchange="setFps(+this.value)">
+        </div>
+        <div class="advsetchips" style="margin-top:10px">
+          <div class="aschip" onclick="setFps(15)">15</div>
+          <div class="aschip" onclick="setFps(30)">30</div>
+          <div class="aschip aschip-active" id="fpsChip60" onclick="setFps(60)">60</div>
+          <div class="aschip" onclick="setFps(90)">90</div>
+        </div>
+      </div>
+
+      <!-- ── DEVICE INFO ── -->
+      <div class="card">
+        <div class="ct"><span style="display:flex;align-items:center;gap:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--acc2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Device Info</span></div>
+        <div class="infobox" id="infoBox"><div style="color:var(--mu)">No device connected</div></div>
+      </div>
+
+    </div>
+
+    <!-- ══ CONFIG ══ -->
+    <div class="panel" id="panel-config">
+
+      <!-- ════════════════════════════════════════════
+           CONFIG SETTINGS — 8 CATEGORIES (accordion)
+           ════════════════════════════════════════════ -->
+      <div class="card" style="margin-top:12px;padding:14px">
+        <div class="ct" style="margin-bottom:10px"><span style="display:flex;align-items:center;gap:6px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--acc2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Device Configuration</span></div>
+        <p class="cfg-note" style="margin-bottom:10px">Settings are sent directly to the connected WLED device. Tap a category to expand.</p>
+
+        <!-- 1. WiFi Setup -->
+        <div class="cfg-section">
+          <div class="cfg-hdr" onclick="toggleCfg('wifi')">
+            <div class="cfg-hdr-left">
+              <div class="cfg-hdr-icon" style="background:rgba(0,240,255,.1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M10.54 16.1a6 6 0 0 1 2.92 0"/><circle cx="12" cy="20" r="1" fill="var(--acc)"/></svg></div>
+              <span class="cfg-hdr-title">WiFi Setup</span>
+            </div>
+            <svg class="cfg-hdr-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="cfg-body" id="cfg-wifi">
+            <div class="cfg-group-title">Network Connection</div>
+
+            <!-- WiFi Scan -->
+            <div style="margin-bottom:10px">
+              <button class="advbtn" id="wifiScanBtn" onclick="doWifiScan()" style="width:100%">
+                <svg id="wifiScanIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M10.54 16.1a6 6 0 0 1 2.92 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>
+                <span id="wifiScanText">Scan for Networks</span>
+              </button>
+              <div id="wifiScanResults" style="display:none;margin-top:8px;display:none;flex-direction:column;gap:4px"></div>
+            </div>
+
+            <div class="cfg-row">
+              <div class="cfg-row-label">Network SSID<div class="cfg-row-sub">WiFi network name</div></div>
+              <input class="cfg-input cfg-input-md" type="text" id="cfgWifiSSID" placeholder="MyNetwork" autocomplete="off">
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">Password<div class="cfg-row-sub">Leave blank to keep existing</div></div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input class="cfg-input cfg-input-md" type="password" id="cfgWifiPass" placeholder="••••••••">
+                <button onclick="toggleWifiPassVis()" style="background:none;border:none;color:var(--mu);cursor:pointer;padding:4px;flex-shrink:0" title="Show/hide password">
+                  <svg id="wifiPassEye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">Static IP<div class="cfg-row-sub">Leave blank for DHCP</div></div>
+              <input class="cfg-input cfg-input-md" type="text" id="cfgWifiIP" placeholder="0.0.0.0">
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">Gateway</div>
+              <input class="cfg-input cfg-input-md" type="text" id="cfgWifiGW" placeholder="0.0.0.0">
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">Subnet Mask</div>
+              <input class="cfg-input cfg-input-md" type="text" id="cfgWifiSN" placeholder="255.255.255.0">
+            </div>
+            <div class="cfg-group-title">Access Point</div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">AP SSID<div class="cfg-row-sub">Hotspot name (default: WLED-AP)</div></div>
+              <input class="cfg-input cfg-input-md" type="text" id="cfgApSSID" placeholder="WLED-AP">
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">AP Password<div class="cfg-row-sub">Min 8 chars, blank = open</div></div>
+              <input class="cfg-input cfg-input-md" type="password" id="cfgApPass" placeholder="wled1234">
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">AP Channel</div>
+              <select class="cfg-select" id="cfgApCh">
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6" selected>6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option><option value="11">11</option><option value="13">13</option>
+              </select>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">AP Open (no password)</div>
+              <label class="tog"><input type="checkbox" id="cfgApOpen"><span class="togtrack"></span><span class="togthumb"></span></label>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">AP always active<div class="cfg-row-sub">Keep AP on even when connected</div></div>
+              <label class="tog"><input type="checkbox" id="cfgApAlways"><span class="togtrack"></span><span class="togthumb"></span></label>
+            </div>
+            <button class="cfg-save-btn" onclick="saveCfgWifi()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. LED Preferences -->
+        <div class="cfg-section">
+          <div class="cfg-hdr" onclick="toggleCfg('led')">
+            <div class="cfg-hdr-left">
+              <div class="cfg-hdr-icon" style="background:rgba(255,61,127,.1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--acc3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg></div>
+              <span class="cfg-hdr-title">LED Preferences</span>
+            </div>
+            <svg class="cfg-hdr-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="cfg-body" id="cfg-led">
+            <div class="cfg-group-title">LED Hardware</div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">LED Count<div class="cfg-row-sub">Total number of LEDs</div></div>
+              <input class="cfg-input cfg-input-sm" type="number" id="cfgLedCount" placeholder="30" min="1" max="1024">
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">LED Type</div>
+              <select class="cfg-select" id="cfgLedType">
+                <option value="22">WS2812B (GRB)</option>
+                <option value="30">SK6812 (GRBW)</option>
+                <option value="24">APA106 (RGB)</option>
+                <option value="50">WS2811 (RGB)</option>
+              </select>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">Color Order</div>
+              <select class="cfg-select" id="cfgColorOrder">
+                <option value="0">GRB</option><option value="1">RGB</option>
+                <option value="2">BRG</option><option value="3">RBG</option>
+                <option value="4">BGR</option><option value="5">GBR</option>
+              </select>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">Reversed LEDs<div class="cfg-row-sub">Flip strip direction</div></div>
+              <label class="tog"><input type="checkbox" id="cfgLedReverse"><span class="togtrack"></span><span class="togthumb"></span></label>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">Skip first LED<div class="cfg-row-sub">e.g. for power injection LED</div></div>
+              <label class="tog"><input type="checkbox" id="cfgLedSkip"><span class="togtrack"></span><span class="togthumb"></span></label>
+            </div>
+            <div class="cfg-group-title">Power &amp; Brightness</div>
+
+            <!-- ABL toggle + max current linked -->
+            <div class="cfg-row" style="align-items:flex-start;padding-bottom:0">
+              <div class="cfg-row-label" style="padding-top:2px">
+                Automatic Brightness Limiter
+                <div class="cfg-row-sub">Caps brightness to stay within max current</div>
+              </div>
+              <label class="tog" style="flex-shrink:0;margin-top:2px">
+                <input type="checkbox" id="cfgABLEnable" onchange="toggleABL()">
+                <span class="togtrack"></span><span class="togthumb"></span>
+              </label>
+            </div>
+            <!-- Max current — only active when ABL is on -->
+            <div id="cfgMaxCurrentRow" style="margin:0 0 0 0;padding:10px 0 10px 14px;border-left:2px solid var(--b);margin-left:4px;margin-bottom:4px;transition:opacity .25s;opacity:.35;pointer-events:none">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                <div>
+                  <div style="font-size:12px;color:var(--tx)">Max Current (mA)</div>
+                  <div style="font-size:10px;color:var(--mu);margin-top:2px">PSU milliamp rating — brightness auto-scales to stay within this</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                  <input class="cfg-input cfg-input-sm" type="number" id="cfgMaxCurrent" placeholder="850" min="1" max="65000" disabled>
+                  <div id="cfgEstCurrent" style="font-size:10px;color:var(--mu);font-family:'Rajdhani',sans-serif;text-align:right;min-height:14px"></div>
+                </div>
+              </div>
+              <!-- Quick presets for common PSU ratings -->
+              <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">
+                <button class="cfg-chip" onclick="setMaxCurrent(450)">0.45A</button>
+                <button class="cfg-chip" onclick="setMaxCurrent(500)">0.5A</button>
+                <button class="cfg-chip" onclick="setMaxCurrent(1000)">1A</button>
+                <button class="cfg-chip" onclick="setMaxCurrent(2000)">2A</button>
+                <button class="cfg-chip" onclick="setMaxCurrent(3000)">3A</button>
+                <button class="cfg-chip" onclick="setMaxCurrent(5000)">5A</button>
+                <button class="cfg-chip" onclick="setMaxCurrent(10000)">10A</button>
+              </div>
+            </div>
+
+            <div class="cfg-row">
+              <div class="cfg-row-label">Max Brightness<div class="cfg-row-sub">0–255 hardware ceiling</div></div>
+              <input class="cfg-input cfg-input-sm" type="number" id="cfgMaxBri" placeholder="255" min="0" max="255">
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">Boot Brightness<div class="cfg-row-sub">Brightness on power on</div></div>
+              <input class="cfg-input cfg-input-sm" type="number" id="cfgBootBri" placeholder="128" min="0" max="255">
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">Turn on at boot</div>
+              <label class="tog"><input type="checkbox" id="cfgBootOn" checked><span class="togtrack"></span><span class="togthumb"></span></label>
+            </div>
+            <div class="cfg-group-title">White Channel (RGBW)</div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">White Balance</div>
+              <select class="cfg-select" id="cfgWhiteBalance">
+                <option value="0">None</option>
+                <option value="1">Auto</option>
+                <option value="2">Accurate</option>
+                <option value="3">Brighter</option>
+              </select>
+            </div>
+            <div class="cfg-row">
+              <div class="cfg-row-label">CCT Blending</div>
+              <select class="cfg-select" id="cfgCCTBlend">
+                <option value="0">None (max brightness)</option>
+                <option value="1">50/50 blend</option>
+                <option value="2">Accurate blend</option>
+                <option value="3">Spectrum</option>
+              </select>
+            </div>
+            <button class="cfg-save-btn" onclick="saveCfgLed()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save
+            </button>
+          </div>
+        </div>
+
+
+        <!-- WLED Settings -->
+        <div class="cfg-section" style="margin-top:10px;border-top:1px solid var(--b);padding-top:10px">
+          <button class="advbtn" onclick="openWledSettings()" style="width:100%;border-color:rgba(0,240,255,.25);color:var(--acc)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+            WLED Settings
+          </button>
+        </div>
+
+      </div><!-- end config card -->
+
+    </div>
+
+    <!-- ══ WLED SETTINGS OVERLAY ══ -->
+    <div id="wledSettingsOverlay" style="display:none;position:fixed;inset:0;z-index:500;background:var(--bg);flex-direction:column">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--b);flex-shrink:0;background:var(--s1)">
+        <button onclick="closeWledSettings()" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--b);background:var(--s2);color:var(--mu);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:var(--tr)" onmouseover="this.style.color='var(--tx)'" onmouseout="this.style.color='var(--mu)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:.5px;color:var(--tx)">WLED Settings</div>
+          <div id="wledSettingsUrl" style="font-size:11px;color:var(--mu);font-family:'Rajdhani',sans-serif;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+        </div>
+        <button onclick="reloadWledSettings()" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--b);background:var(--s2);color:var(--mu);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:var(--tr)" title="Reload" onmouseover="this.style.color='var(--acc)'" onmouseout="this.style.color='var(--mu)'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.96"/></svg>
+        </button>
+      </div>
+      <div id="wledSettingsBody" style="flex:1;position:relative;overflow:hidden">
+        <div id="wledSettingsLoader" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--mu);font-family:'Rajdhani',sans-serif;font-size:14px;letter-spacing:.5px">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.96"/></svg>
+          Loading WLED…
+        </div>
+        <iframe id="wledSettingsFrame" src="about:blank" style="width:100%;height:100%;border:none;display:block;opacity:0;transition:opacity .3s" onload="wledFrameLoaded()"></iframe>
+      </div>
+    </div>
+
+    <!-- ══ DEVICES ══ -->
+    <div class="panel" id="panel-devices">
+      <div class="card" style="border-color:rgba(0,240,255,.2);margin-top:12px">
+        <div class="ct" style="color:var(--acc)">Add Device</div>
+        <p style="font-size:12px;color:var(--mu);margin-bottom:12px;line-height:1.6">Enter your WLED device IP address.</p>
+        <div class="addrow">
+          <input class="addip" type="text" id="ipInput" placeholder="192.168.1.42" inputmode="decimal"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();doAdd()}">
+          <button class="addbtn" onclick="doAdd()">Connect</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct">Auto Scan</div>
+        <p style="font-size:12px;color:var(--mu);margin-bottom:12px;line-height:1.6">Scan your local network for WLED devices.</p>
+        <button class="scanbtn" id="scanBtn" onclick="doScan()">
+          <span id="scanIcon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M10.54 16.1a6 6 0 0 1 2.92 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg></span>
+          <span id="scanText">Scan Network</span>
+        </button>
+        <div class="scanprog" id="scanProg"><div class="scanbar" id="scanBar" style="width:0%"></div></div>
+        <div class="scanst" id="scanSt"></div>
+      </div>
+      <div class="sec">Saved Devices</div>
+      <div id="devList"><div class="empty"><div class="ei"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--mu)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6M12 3a6 6 0 0 1 6 6c0 2.2-1.2 4.1-3 5.2V18H9v-3.8A6 6 0 0 1 6 9a6 6 0 0 1 6-6z"/></svg></div><h3>No Devices Yet</h3><p>Enter your WLED IP above or tap Scan</p></div></div>
+
+    </div>
+
+    <!-- ══ SOUND REACTIVE ══ -->
+    <div class="panel" id="panel-sound">
+
+      <!-- Connection (hidden inputs, auto-filled from active device) -->
+      <input type="hidden" id="srWledIp" value="">
+      <input type="hidden" id="srLedCount" value="60">
+
+      <div class="card" style="margin-top:12px">
+        <div class="ct">Device</div>
+        <div id="srDeviceInfo" style="display:flex;align-items:center;gap:10px;padding:4px 0 10px">
+          <div class="ddot" id="srDevDot"></div>
+          <div style="flex:1;min-width:0">
+            <div id="srDevName" style="font-size:13px;font-weight:600;font-family:'Rajdhani',sans-serif;color:var(--mu)">No device selected</div>
+            <div id="srDevMeta" style="font-size:11px;color:var(--mu);margin-top:1px">Go to Devices tab to connect</div>
+          </div>
+        </div>
+        <div class="togrow" style="border-top:1px solid var(--b)">
+          <div style="font-size:12px;color:var(--tx)">System Audio <span style="font-size:11px;color:var(--mu)">(Android 10+)</span></div>
+          <label class="tog"><input type="checkbox" id="srUseSystemAudio"><span class="togtrack"></span><span class="togthumb"></span></label>
+        </div>
+        <!-- Start/Stop controls -->
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+          <button class="cfg-save-btn" id="srStartBtn" onclick="srGo()" style="background:linear-gradient(135deg,var(--acc2),var(--acc));margin-top:0;flex:1">▶ Start</button>
+          <button class="cfg-save-btn" id="srStopBtn"  onclick="srHalt()" style="display:none;background:var(--err);margin-top:0;flex:1">■ Stop</button>
+        </div>
+        <div style="display:flex;justify-content:center;margin-top:10px">
+          <div class="sr-pill" id="srPill"><div class="sr-dot"></div><span id="srPillTxt">Idle</span></div>
+        </div>
+      </div>
+
+      <!-- Effects -->
+      <div class="card">
+        <div class="ct">Effect</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <button class="sr-fx active" data-fx="geq" onclick="srPickFx(this)">
+            <span class="sr-fx-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/></svg></span>
+            <span class="sr-fx-nm">GEQ Spectrum</span>
+            <span class="sr-fx-ds">16 bands, freq→color</span>
+          </button>
+          <button class="sr-fx" data-fx="ripple" onclick="srPickFx(this)">
+            <span class="sr-fx-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" opacity=".5"/><circle cx="12" cy="12" r="11" opacity=".2"/></svg></span>
+            <span class="sr-fx-nm">Ripple</span>
+            <span class="sr-fx-ds">Ring expands on beat</span>
+          </button>
+          <button class="sr-fx" data-fx="strobe" onclick="srPickFx(this)">
+            <span class="sr-fx-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+            <span class="sr-fx-nm">Strobe</span>
+            <span class="sr-fx-ds">Flash on every beat</span>
+          </button>
+          <button class="sr-fx" data-fx="vuMeter" onclick="srPickFx(this)">
+            <span class="sr-fx-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="14" width="3" height="6" rx="1"/><rect x="7" y="10" width="3" height="10" rx="1"/><rect x="12" y="6" width="3" height="14" rx="1"/><rect x="17" y="2" width="3" height="18" rx="1"/></svg></span>
+            <span class="sr-fx-nm">VU Meter</span>
+            <span class="sr-fx-ds">Classic volume bar</span>
+          </button>
+          <button class="sr-fx" data-fx="twinkle" onclick="srPickFx(this)">
+            <span class="sr-fx-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg></span>
+            <span class="sr-fx-nm">Twinkle</span>
+            <span class="sr-fx-ds">Stars on treble</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Color Mode -->
+      <div class="card">
+        <div class="ct">Color Mode</div>
+        <div style="display:flex;gap:5px;margin-bottom:13px">
+          <div class="sr-ctab active" data-cm="single"   onclick="srPickMode(this)">Single</div>
+          <div class="sr-ctab"        data-cm="combo"    onclick="srPickMode(this)">Combo</div>
+          <div class="sr-ctab"        data-cm="gradient" onclick="srPickMode(this)">Gradient</div>
+          <div class="sr-ctab"        data-cm="rainbow"  onclick="srPickMode(this)">Rainbow</div>
+        </div>
+
+        <!-- Single -->
+        <div class="sr-panel active" id="srPSingle">
+          <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px" id="srSwSingle">
+            <div class="sr-swatch active" data-c="255,0,0"     style="background:#ff0000" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="255,50,0"    style="background:#ff3200" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="255,140,0"   style="background:#ff8c00" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="255,220,0"   style="background:#ffdc00" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="0,255,0"     style="background:#00ff00" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="0,255,160"   style="background:#00ffa0" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="0,160,255"   style="background:#00a0ff" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="0,0,255"     style="background:#0000ff" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="130,0,255"   style="background:#8200ff" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="255,0,160"   style="background:#ff00a0" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="255,255,255" style="background:#ffffff" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="255,120,120" style="background:#ff7878" onclick="srPickSingle(this)"></div>
+            <div class="sr-swatch"        data-c="120,220,255" style="background:#78dcff" onclick="srPickSingle(this)"></div>
+            <div class="sr-cust-wrap" title="Pick any color">
+              <div id="srCustPrev" style="width:100%;height:100%;background:#ff00ff;pointer-events:none"></div>
+              <input type="color" value="#ff00ff" oninput="srPickCustom(this)" style="position:absolute;inset:-6px;width:160%;height:160%;padding:0;margin:0;border:none;cursor:pointer;opacity:0">
+            </div>
+          </div>
+        </div>
+
+        <!-- Combo -->
+        <div class="sr-panel" id="srPCombo">
+          <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px" id="srComboSlots">
+            <div class="sr-slot" id="srCs0" onclick="srAddToSlot(0)"><span>+</span><div class="sr-slot-del" onclick="srDelSlot(event,0)">✕</div></div>
+            <div class="sr-slot" id="srCs1" onclick="srAddToSlot(1)"><span>+</span><div class="sr-slot-del" onclick="srDelSlot(event,1)">✕</div></div>
+            <div class="sr-slot" id="srCs2" onclick="srAddToSlot(2)"><span>+</span><div class="sr-slot-del" onclick="srDelSlot(event,2)">✕</div></div>
+            <div class="sr-slot" id="srCs3" onclick="srAddToSlot(3)"><span>+</span><div class="sr-slot-del" onclick="srDelSlot(event,3)">✕</div></div>
+            <input type="color" id="srComboPicker" style="display:none" oninput="srOnComboPick(this)">
+          </div>
+          <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Tap + to add up to 4 colors. LEDs cycle through them.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+            <div class="sr-swatch" data-c="255,0,0"     style="background:#ff0000" onclick="srQuickAdd(this)"></div>
+            <div class="sr-swatch" data-c="255,140,0"   style="background:#ff8c00" onclick="srQuickAdd(this)"></div>
+            <div class="sr-swatch" data-c="255,220,0"   style="background:#ffdc00" onclick="srQuickAdd(this)"></div>
+            <div class="sr-swatch" data-c="0,255,0"     style="background:#00ff00" onclick="srQuickAdd(this)"></div>
+            <div class="sr-swatch" data-c="0,160,255"   style="background:#00a0ff" onclick="srQuickAdd(this)"></div>
+            <div class="sr-swatch" data-c="130,0,255"   style="background:#8200ff" onclick="srQuickAdd(this)"></div>
+            <div class="sr-swatch" data-c="255,0,160"   style="background:#ff00a0" onclick="srQuickAdd(this)"></div>
+            <div class="sr-swatch" data-c="255,255,255" style="background:#ffffff" onclick="srQuickAdd(this)"></div>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <button class="chip" onclick="srSetCombo([[255,0,0],[255,140,0]])">🌅 Sunset</button>
+            <button class="chip" onclick="srSetCombo([[0,0,255],[0,200,200]])">🌊 Ocean</button>
+            <button class="chip" onclick="srSetCombo([[255,0,0],[255,255,255],[0,0,255]])">🎆 Patriot</button>
+            <button class="chip" onclick="srSetCombo([[0,255,0],[0,100,0]])">🌲 Forest</button>
+            <button class="chip" onclick="srSetCombo([[255,0,160],[130,0,255],[0,160,255]])">💜 Neon</button>
+            <button class="chip" onclick="srSetCombo([[255,100,0],[255,30,0],[255,200,0],[200,0,0]])">🔥 Lava</button>
+          </div>
+        </div>
+
+        <!-- Gradient -->
+        <div class="sr-panel" id="srPGradient">
+          <div id="srGradBar" style="height:30px;border-radius:9px;border:1px solid var(--b);margin-bottom:10px"></div>
+          <div style="display:flex;gap:14px;margin-bottom:8px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+              <span style="font-size:11px;color:var(--mu)">Start</span>
+              <input type="color" id="srGStart" value="#ff0000" oninput="srUpdateGrad()" style="width:48px;height:34px;border:none;border-radius:8px;cursor:pointer;background:none;padding:0">
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+              <span style="font-size:11px;color:var(--mu)">End</span>
+              <input type="color" id="srGEnd"   value="#0000ff" oninput="srUpdateGrad()" style="width:48px;height:34px;border:none;border-radius:8px;cursor:pointer;background:none;padding:0">
+            </div>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <button class="chip" style="background:linear-gradient(90deg,#ff0000,#ffff00);color:#000;border-color:transparent" onclick="srSetGrad('#ff0000','#ffff00')">Fire</button>
+            <button class="chip" style="background:linear-gradient(90deg,#0000ff,#00ffff);color:#000;border-color:transparent" onclick="srSetGrad('#0000ff','#00ffff')">Ice</button>
+            <button class="chip" style="background:linear-gradient(90deg,#ff00ff,#00ffff);color:#000;border-color:transparent" onclick="srSetGrad('#ff00ff','#00ffff')">Neon</button>
+            <button class="chip" style="background:linear-gradient(90deg,#00ff00,#0000ff);color:#fff;border-color:transparent" onclick="srSetGrad('#00ff00','#0000ff')">Nature</button>
+            <button class="chip" style="background:linear-gradient(90deg,#ff6600,#9900ff);color:#fff;border-color:transparent" onclick="srSetGrad('#ff6600','#9900ff')">Dusk</button>
+          </div>
+        </div>
+
+        <!-- Rainbow -->
+        <div class="sr-panel" id="srPRainbow">
+          <div style="font-size:12px;color:var(--mu);padding:10px;background:var(--s2);border-radius:var(--r2);border:1px solid var(--b);line-height:1.6">
+            🌈 Full HSV rainbow flows across the strip.<br>Speed reacts to treble energy. Brightness follows overall volume.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tuning -->
+      <div class="card">
+        <div class="ct">Tuning</div>
+        <div class="srow">
+          <div class="slabel"><span>Sensitivity</span><span id="srSenV">1</span></div>
+          <input class="sl sl-spd" type="range" id="srSensitivity" min="1" max="10" value="1"
+            oninput="document.getElementById('srSenV').textContent=this.value; if(srIsRunning) srPushUpdate()">
+        </div>
+        <div class="srow">
+          <div class="slabel"><span>Noise Floor</span><span id="srNfV">0%</span></div>
+          <input class="sl sl-whi" type="range" id="srNoiseFloor" min="0" max="50" value="0"
+            oninput="document.getElementById('srNfV').textContent=this.value+'%'; if(srIsRunning) srPushUpdate()">
+        </div>
+        <div class="srow">
+          <div class="slabel"><span>Brightness</span><span id="srBriV">100%</span></div>
+          <input class="sl sl-bri" type="range" id="srBrightness" min="10" max="255" value="255"
+            oninput="document.getElementById('srBriV').textContent=Math.round(this.value/255*100)+'%'; if(srIsRunning) srPushUpdate()">
+        </div>
+        <div class="srow" style="margin-bottom:0">
+          <div class="slabel"><span>Min Light</span><span id="srMinLightV">0.0%</span></div>
+          <input class="sl sl-int" type="range" id="srMinLight" min="0" max="10" step="0.01" value="0"
+            oninput="document.getElementById('srMinLightV').textContent=parseFloat(this.value).toFixed(1)+'%'; if(srIsRunning) srPushUpdate()">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ LEDMAP ══ -->
+    <div class="panel" id="panel-ledmap" style="flex:1;flex-direction:column;min-height:0;margin-top:12px">
+
+      <!-- Device bar (auto-synced) -->
+      <div class="devbar" style="margin-top:0;cursor:default">
+        <div class="ddot" id="lmDevDot"></div>
+        <div class="dinfo">
+          <div class="dname" id="lmDevName">No device selected</div>
+          <div class="dmeta" id="lmDevMeta">Go to Devices tab to connect</div>
+        </div>
+        <div id="lmStatusDot" style="width:7px;height:7px;border-radius:50%;background:var(--mu);flex-shrink:0;transition:background 0.3s"></div>
+      </div>
+
+      <!-- LED count progress -->
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--s1);border:1px solid var(--b);border-radius:var(--r);margin-top:10px">
+        <span style="font-size:10px;color:var(--mu);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;font-family:'Rajdhani',sans-serif">LEDs</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+          <div style="width:100%;height:6px;background:var(--s2);border-radius:3px;overflow:hidden;border:1px solid var(--b)">
+            <div id="lmProgressFill" style="height:100%;background:var(--acc);border-radius:3px;transition:width 0.3s,background 0.3s;width:0%"></div>
+          </div>
+          <div id="lmUsedLabel" style="font-size:10px;color:var(--mu);font-family:'Rajdhani',sans-serif">— / —</div>
+        </div>
+      </div>
+
+      <!-- Canvas area -->
+      <div id="lmCanvasWrap" style="flex:1;position:relative;overflow:hidden;background:#0d1017;border-radius:var(--r);border:1px solid var(--b);margin-top:10px;min-height:200px">
+        <div id="lmEmptyHint" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none;opacity:0.3">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="5" r="2.5"/></svg>
+          <p style="font-size:12px;letter-spacing:2px;text-transform:uppercase;font-family:'Rajdhani',sans-serif;color:var(--mu)">Drag to draw a line</p>
+        </div>
+        <canvas id="lmCanvas" style="display:block;width:100%;height:100%;touch-action:none"></canvas>
+      </div>
+
+      <!-- Toolbar -->
+      <div style="display:flex;align-items:stretch;background:var(--s1);border:1px solid var(--b);border-radius:var(--r);height:50px;flex-shrink:0;margin-top:8px;overflow:hidden">
+        <button class="lm-tbtn active" id="lmBtnDraw" onclick="lmSetTool('draw')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/></svg>
+          <span>Draw</span>
+        </button>
+        <button class="lm-tbtn" id="lmBtnSelect" onclick="lmSetTool('select')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M5 3l14 9-7 1-4 7z"/></svg>
+          <span>Select</span>
+        </button>
+        <button class="lm-tbtn" onclick="lmDeleteSelected()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          <span>Delete</span>
+        </button>
+        <button class="lm-tbtn" style="color:var(--ok)" onclick="lmOpenSaveModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Save</span>
+        </button>
+        <button class="lm-tbtn" style="color:var(--err)" onclick="lmOpenResetModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+          <span>Reset</span>
+        </button>
+      </div>
+
+      <!-- Lines list -->
+      <div style="background:var(--s1);border:1px solid var(--b);border-radius:var(--r);margin-top:8px;flex-shrink:0;max-height:150px;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 14px;border-bottom:1px solid var(--b);position:sticky;top:0;background:var(--s1);z-index:1">
+          <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--mu);font-family:'Rajdhani',sans-serif">Lines</span>
+          <span id="lmLineCount" style="font-size:10px;color:var(--acc);font-family:'Rajdhani',sans-serif">0 lines</span>
+        </div>
+        <div id="lmLineList"></div>
+      </div>
+    </div>
+
+    <!-- LEDMAP: LED Config Sheet -->
+    <div class="sheet-overlay" id="lmLedSheet">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <div class="sheet-color-bar" id="lmSheetColorBar"></div>
+          <div class="sheet-title" id="lmSheetTitle">Line</div>
+          <div class="sheet-id-badge" id="lmSheetIdBadge">#1</div>
+        </div>
+        <div class="sheet-body">
+          <div class="field-row">
+            <div class="field-label">Label</div>
+            <input class="field-input" type="text" id="lmSheetLabel" placeholder="e.g. Left strip">
+          </div>
+          <div class="field-label" style="margin-bottom:8px;">LED Range</div>
+          <div class="led-row">
+            <div class="led-col">
+              <label>⬤ Start</label>
+              <input class="led-big s" id="lmSheetStart" type="number" min="0" placeholder="0" inputmode="numeric">
+            </div>
+            <div class="led-arrow-mid">→</div>
+            <div class="led-col">
+              <label>● End</label>
+              <input class="led-big e" id="lmSheetEnd" type="number" min="0" placeholder="5" inputmode="numeric">
+            </div>
+          </div>
+          <div class="led-hint" id="lmLedHint"></div>
+          <div class="sheet-actions">
+            <button class="btn btn-ghost" onclick="lmCloseSheet()">Cancel</button>
+            <button class="btn btn-primary" onclick="lmConfirmSheet()">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEDMAP: Save Modal -->
+    <div class="modal-overlay" id="lmSaveModal">
+      <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-title">// SAVE MAP</div>
+        <div class="modal-json" id="lmPreviewJson"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="lmCloseModal('lmSaveModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="lmSaveToWled()">Upload to WLED</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEDMAP: Reset Modal -->
+    <div class="modal-overlay" id="lmResetModal">
+      <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-title">// RESET MAP</div>
+        <p style="color:var(--mu);font-size:14px;margin-bottom:16px;">Sends <span style="color:var(--err);font-family:'Rajdhani',sans-serif">{"map":[]}</span> to WLED and clears all lines.</p>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="lmCloseModal('lmResetModal')">Cancel</button>
+          <button class="btn btn-danger" onclick="lmResetWled()">Reset WLED</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  </div><!-- end app-inner -->
+
+  <!-- RIGHT SIDEBAR NAV -->
+  <div class="bnav">
+    <button class="hpwr" id="powerBtn" onclick="togglePower()" style="width:44px;height:44px;border-radius:12px;margin:4px auto 6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></button>
+    <button class="nb active" data-tab="control">
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg></span>
+      <span class="nl">Control</span>
+    </button>
+    <button class="nb" data-tab="fx">
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z"/><path d="M5 5l1.5 1.5M17.5 5 19 6.5M5 19l1.5-1.5M17.5 19 19 17.5" stroke-width="1.5"/></svg></span>
+      <span class="nl">FX</span>
+    </button>
+    <button class="nb" data-tab="presets">
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
+      <span class="nl">Presets</span>
+    </button>
+    <button class="nb" data-tab="sound">
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+      <span class="nl">Sound</span>
+    </button>
+    <button class="nb" data-tab="advanced">
+      <span class="ni"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg></span>
+      <span class="nl">Advanced</span>
+    </button>
+    <button class="nb" data-tab="config">
+      <span class="ni"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
+      <span class="nl">Config</span>
+    </button>
+    <button class="nb" data-tab="devices">
+      <span class="ni"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+      <span class="nl">Devices</span>
+      <div class="nbadge" id="devBadge" style="display:none">0</div>
+    </button>
+    <button class="nb" data-tab="ledmap">
+      <span class="ni"><svg viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="5" r="2.5"/></svg></span>
+      <span class="nl">Ledmap</span>
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────
+const S = {
+  devices: [], activeIp: null,
+  power: true, bri: 128, transition: 7,
+  fx: 0, pal: 0, sx: 128, ix: 128,
+  effects: [], palettes: [],
+  colors: [[255,107,53,0],[0,0,0,0],[0,0,0,0]],
+  swatch: 0,
+  scanning: false, connectingIp: null,
+  pollTimer: null, sendTimer: null,
+  // Advanced settings state
+  nl: { on: false, dur: 60, tbri: 0, fade: true },
+  udpn: { send: false, recv: true },
+  segments: [],
+  presets: {},
+  currentPreset: -1,
+  lor: 0,
+};
+
+// ─── HTTP ────────────────────────────────────────────
+// ─── HTTP helpers ─────────────────────────────────────
+// Resolve CapacitorHttp across versions:
+//   v4+ core  -> window.Capacitor.Plugins.CapacitorHttp
+//   v3 core   -> window.CapacitorHttp (registered globally)
+//   community -> window.Capacitor.Plugins.Http
+function _getCapHttp() {
+  if (!window.Capacitor) return null;
+  const P = window.Capacitor.Plugins || {};
+  return P.CapacitorHttp || window.CapacitorHttp || P.Http || null;
+}
+
+async function wGet(ip, path, ms=3000) {
+  const url = 'http://' + ip + path;
+  const capHttp = _getCapHttp();
+  if (capHttp) {
+    try {
+      const r = await Promise.race([
+        capHttp.get({ url, headers: {}, readTimeout: ms, connectTimeout: ms }),
+        new Promise(res => setTimeout(() => res(null), ms + 200))
+      ]);
+      if (!r) return null;
+      if (r.status === 0 || r.status >= 300) return null;
+      return typeof r.data === 'string' ? tryParse(r.data) : (r.data || null);
+    } catch(e) { return null; }
+  }
+  // XHR fallback (browser)
+  return new Promise(resolve => {
+    const x = new XMLHttpRequest();
+    let done = false;
+    const fin = v => { if (!done) { done = true; resolve(v); } };
+    try {
+      x.open('GET', url, true);
+      x.timeout = ms; x.responseType = 'json';
+      x.onload    = () => fin(x.status < 300 ? (x.response || tryParse(x.responseText)) : null);
+      x.onerror   = () => fin(null);
+      x.ontimeout = () => fin(null);
+      x.send();
+    } catch(e) { fin(null); }
+  });
+}
+
+async function wPost(ip, path, data, includeV) {
+  const url = 'http://' + ip + path;
+  const payload = includeV ? Object.assign({ v: true }, data) : data;
+  const body = JSON.stringify(payload);
+  const capHttp = _getCapHttp();
+  if (capHttp) {
+    try {
+      const r = await capHttp.post({ url, data: body, headers: { 'Content-Type': 'application/json; charset=UTF-8' }, readTimeout: 4000, connectTimeout: 4000 });
+      if (!r || r.status === 0 || r.status >= 300) return null;
+      return typeof r.data === 'string' ? tryParse(r.data) : (r.data || null);
+    } catch(e) { return null; }
+  }
+  return new Promise(resolve => {
+    const x = new XMLHttpRequest();
+    let done = false;
+    const fin = v => { if (!done) { done = true; resolve(v); } };
+    try {
+      x.open('POST', url, true);
+      x.timeout = 4000; x.responseType = 'json';
+      x.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+      x.onload    = () => fin(x.status < 300 ? (x.response || tryParse(x.responseText)) : null);
+      x.onerror   = () => fin(null);
+      x.ontimeout = () => fin(null);
+      x.send(body);
+    } catch(e) { fin(null); }
+  });
+}
+
+function tryParse(s) { try { return JSON.parse(s); } catch(e) { return null; } }
+
+// ─── API ─────────────────────────────────────────────
+function api(payload) {
+  if (!S.activeIp) { toast('No device selected'); return; }
+  clearTimeout(S.sendTimer);
+  S.sendTimer = setTimeout(() => {
+    wPost(S.activeIp, '/json/si', payload, true).then(r => { if (r) applyState(r.state || r); });
+  }, 80);
+}
+
+// ─── CONNECTION ──────────────────────────────────────
+function connectDevice(ip) { stopPoll(); setConn('…'); S.connectingIp = ip; renderDevs(); loadAll(ip).then(() => { S.connectingIp = null; renderDevs(); startPoll(ip); }); }
+function stopPoll() { clearInterval(S.pollTimer); S.pollTimer = null; }
+function startPoll(ip) {
+  stopPoll();
+  S.pollTimer = setInterval(async () => {
+    if (S.activeIp !== ip) { stopPoll(); return; }
+    const r = await wGet(ip, '/json/si', 2500);
+    const dev = S.devices.find(d => d.ip === ip);
+    if (!r) { if (dev) dev.online = false; setConn('off'); updateBar(); return; }
+    if (dev) dev.online = true;
+    setConn('on', ip); applyState(r.state || r); updateBar();
+  }, 4000);
+}
+
+function setConn(mode, ip='') {
+  const el = document.getElementById('connStatus');
+  if (!el) return;
+  if (mode==='on') el.innerHTML=`<span class="ldot"></span><span style="color:var(--ok);font-size:10px;font-family:'Rajdhani',sans-serif;letter-spacing:.5px"> ${ip}</span>`;
+  else if (mode==='…') el.innerHTML=`<span style="font-size:11px;color:var(--mu)">connecting…</span>`;
+  else el.innerHTML=`<span style="font-size:11px;color:var(--err)">Offline</span>`;
+}
+
+// ─── LOAD ────────────────────────────────────────────
+async function loadAll(ip) {
+  const si = await wGet(ip, '/json/si', 3000);
+  const dev = S.devices.find(d => d.ip === ip);
+  if (!si) { if (dev) { dev.online = false; renderDevs(); updateBar(); } return; }
+  if (dev) {
+    dev.online = true;
+    dev.name = si.info?.name || dev.name;
+    dev.leds = si.info?.leds?.count || dev.leds;
+    dev.fps  = si.info?.leds?.fps   || 0;
+    dev.info = si.info;
+    saveDev();
+  }
+  if (si.info) renderDevInfo(dev, si.info);
+  if (si.state) applyState(si.state);
+  renderDevs(); updateBar();
+
+  if (!S.effects.length) {
+    const ef = await wGet(ip, '/json/effects', 3000);
+    if (ef && Array.isArray(ef)) { S.effects = ef; renderFx(); }
+  }
+  if (!S.palettes.length) {
+    const pl = await wGet(ip, '/json/palettes', 3000);
+    if (pl && Array.isArray(pl)) { S.palettes = pl; renderPal(); }
+  }
+  const pr = await wGet(ip, '/presets.json', 3000);
+  if (pr) { S.presets = pr; renderPresetsAdv(); }
+}
+
+function applyState(s) {
+  if (!s) return;
+  if (s.on  !== undefined) S.power = s.on;
+  if (s.bri !== undefined) S.bri   = s.bri;
+  if (s.transition !== undefined) S.transition = s.transition;
+  if (s.nl) { S.nl = Object.assign({}, S.nl, s.nl); }
+  if (s.udpn) { S.udpn = Object.assign({}, S.udpn, s.udpn); }
+  if (s.lor !== undefined) S.lor = s.lor;
+  if (s.seg) { S.segments = s.seg; }
+  const seg = s.seg?.[0];
+  if (seg) {
+    if (seg.fx  !== undefined) S.fx  = seg.fx;
+    if (seg.pal !== undefined) S.pal = seg.pal;
+    if (seg.sx  !== undefined) S.sx  = seg.sx;
+    if (seg.ix  !== undefined) S.ix  = seg.ix;
+    if (seg.col) {
+      S.colors[0] = [...(seg.col[0]||[255,107,53,0])].map(Number);
+      S.colors[1] = [...(seg.col[1]||[0,0,0,0])].map(Number);
+      S.colors[2] = [...(seg.col[2]||[0,0,0,0])].map(Number);
+    }
+  }
+  syncUI();
+}
+
+// ─── DEVICE MANAGEMENT ───────────────────────────────
+function saveDev() { try { localStorage.setItem('wled_dev', JSON.stringify(S.devices)); } catch(e) {} }
+function loadDev() {
+  try { const d = localStorage.getItem('wled_dev'); if (d) S.devices = JSON.parse(d); } catch(e) {}
+  const active = (() => { try { return localStorage.getItem('wled_active'); } catch(e) { return null; } })();
+  if (S.devices.length) {
+    const t = (active && S.devices.find(d => d.ip === active)) ? active : S.devices[0].ip;
+    selDev(t);
+  }
+  renderDevs(); updBadge();
+}
+
+function selDev(ip) {
+  S.activeIp = ip;
+  try { localStorage.setItem('wled_active', ip); } catch(e) {}
+  S.effects = []; S.palettes = [];
+  renderDevs(); updateBar(); connectDevice(ip);
+  if (typeof srSyncDevice === 'function') srSyncDevice();
+  if (typeof lmSyncDevice === 'function') lmSyncDevice();
+}
+
+async function doAdd() {
+  const el = document.getElementById('ipInput');
+  const ip = (el.value || '').trim();
+  if (!ip) { el.focus(); return; }
+  if (S.devices.find(d => d.ip === ip)) { toast('Already saved'); return; }
+  el.value = '';
+  toast('Connecting to ' + ip + '…');
+  const si = await wGet(ip, '/json/si', 4000);
+  if (!si) {
+    toast('❌ No WLED found at ' + ip);
+    if (confirm('Cannot reach ' + ip + '.\nSave anyway?')) {
+      S.devices.push({ ip, name: ip, leds: 0, online: false, info: null, fps: 0 });
+      saveDev(); renderDevs(); updBadge();
+      if (!S.activeIp) { S.activeIp = ip; updateBar(); }
+    }
+    return;
+  }
+  const info = si.info || {};
+  const dev = { ip, name: info.name || ('WLED @ ' + ip), leds: info.leds?.count || 0, online: true, info, fps: info.leds?.fps || 0 };
+  S.devices.push(dev); saveDev(); renderDevs(); updBadge();
+  toast('✅ ' + dev.name + ' (' + dev.leds + ' LEDs)');
+  if (!S.activeIp) selDev(ip);
+  else if (si.state) applyState(si.state);
+}
+
+function remDev(ip) {
+  if (!confirm('Remove ' + ip + '?')) return;
+  S.devices = S.devices.filter(d => d.ip !== ip);
+  if (S.activeIp === ip) {
+    stopPoll(); S.activeIp = S.devices[0]?.ip || null;
+    if (S.activeIp) selDev(S.activeIp); else { setConn('off'); updateBar(); }
+  }
+  saveDev(); renderDevs(); updBadge();
+}
+
+// ─── SCANNING ────────────────────────────────────────
+function doScan() {
+  if (S.scanning) return;
+  S.scanning = true;
+
+  const btn  = document.getElementById('scanBtn');
+  const prog = document.getElementById('scanProg');
+  const bar  = document.getElementById('scanBar');
+  const st   = document.getElementById('scanSt');
+  const SPIN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>';
+  const WIFI = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M10.54 16.1a6 6 0 0 1 2.92 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>';
+
+  btn.disabled = true;
+  btn.classList.add('scanning');
+  document.getElementById('scanIcon').innerHTML = SPIN;
+  document.getElementById('scanText').textContent = 'Scanning\u2026';
+  prog.style.display = 'block'; st.style.display = 'block'; bar.style.width = '0%';
+
+  function resetBtn(label) {
+    const b = document.getElementById('scanBtn');
+    const icon = document.getElementById('scanIcon');
+    const text = document.getElementById('scanText');
+    if (b) { b.disabled = false; b.classList.remove('scanning'); }
+    if (icon) icon.innerHTML = WIFI;
+    if (text) text.textContent = label || 'Scan Again';
+    S.scanning = false;
+  }
+
+  function finish(found) {
+    const p2 = document.getElementById('scanProg');
+    const s2 = document.getElementById('scanSt');
+    if (p2) p2.style.display = 'none';
+    if (s2) {
+      s2.textContent = found ? ('\u2705 Found ' + found + ' device' + (found > 1 ? 's' : '')) : '\u{1F615} None found \u2014 enter IP manually';
+      setTimeout(() => { s2.style.display = 'none'; }, 4000);
+    }
+    resetBtn(found ? 'Scan Again' : 'Scan Network');
+  }
+
+  function addFoundDevice(ip, info) {
+    if (S.devices.find(d => d.ip === ip)) return false;
+    const dev = { ip, name: info.name || ('WLED @ ' + ip), leds: info.leds?.count || 0, online: true, info, fps: info.leds?.fps || 0 };
+    S.devices.push(dev); saveDev(); renderDevs(); updBadge();
+    if (!S.activeIp) selDev(ip);
+    return true;
+  }
+
+  const WledDiscovery = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.WledDiscovery;
+  if (!WledDiscovery) {
+    st.textContent = 'Discovery plugin not available';
+    setTimeout(() => finish(0), 1500);
+    return;
+  }
+
+  let found = 0;
+  const SCAN_MS = 5000;
+
+  st.textContent = 'Scanning for WLED devices\u2026';
+
+  // Smooth progress bar over 5 seconds
+  const barTimer = setInterval(() => {
+    const el = document.getElementById('scanBar');
+    if (el) el.style.width = Math.min(95, parseFloat(el.style.width || 0) + (95 / (SCAN_MS / 200))) + '%';
+  }, 200);
+
+  const deviceListenerP = WledDiscovery.addListener('deviceFound', result => {
+    try {
+      const ip = result && result.ip;
+      if (!ip) return;
+      let info = {};
+      try { info = JSON.parse(result.info || '{}'); } catch(e) {}
+      if (addFoundDevice(ip, info)) {
+        found++;
+        st.textContent = '\u2728 Found: ' + (info.name || result.name || ip);
+      }
+    } catch(e) {}
+  });
+
+  WledDiscovery.startScan().catch(() => {});
+
+  setTimeout(() => {
+    clearInterval(barTimer);
+    WledDiscovery.stopScan().catch(() => {});
+    deviceListenerP.then(l => { try { if (l && l.remove) l.remove(); } catch(e) {} });
+    finish(found);
+  }, SCAN_MS);
+}
+
+
+// ─── CONTROLS ────────────────────────────────────────
+function togglePower() {
+  S.power = !S.power;
+  document.getElementById('powerBtn').className = 'hpwr' + (S.power ? ' on' : '');
+  api({ on: S.power });
+}
+
+// Color wheel interaction → apply solid effect (fx=0) automatically
+function setColor(r, g, b) {
+  S.colors[S.swatch] = [r,g,b,0];
+  _tempBase = null;
+  var ts = document.getElementById('tempSlider'); if(ts) ts.value = 128;
+  updateSwatches(); drawWheel(); sendColorSolid();
+}
+
+function onWhite(v) {
+  S.colors[S.swatch][3] = +v;
+  sendColorSolid();
+}
+
+// Temperature: subtle warm/cool tint blended into current color
+// _tempBase stores the original so slider moves don't compound
+var _tempBase = null;
+function onTemp(v) {
+  v = +v;
+  if (!_tempBase) _tempBase = S.colors[S.swatch].slice();
+  const r = _tempBase[0], g = _tempBase[1], b = _tempBase[2];
+  const t = (v - 128) / 127; // -1..+1, 0 = neutral
+  const strength = Math.abs(t) * 0.18; // max 18% blend — keeps color character
+  let tr, tg, tb;
+  if (t >= 0) {
+    // warm: nudge toward amber (255,180,60)
+    tr = Math.round(r + (255 - r) * strength);
+    tg = Math.round(g + (180 - g) * strength * 0.5);
+    tb = Math.round(b * (1 - strength * 0.7));
+  } else {
+    // cool: nudge toward ice blue (120,190,255)
+    tr = Math.round(r * (1 - strength * 0.5));
+    tg = Math.round(g + (190 - g) * strength * 0.3);
+    tb = Math.round(b + (255 - b) * strength);
+  }
+  S.colors[S.swatch] = [Math.min(255,Math.max(0,tr)), Math.min(255,Math.max(0,tg)), Math.min(255,Math.max(0,tb)), _tempBase[3]||0];
+  updateSwatches(); drawWheel();
+  if (!_wheelSendTimer) {
+    sendColorSolid();
+    _wheelSendTimer = setTimeout(function() {
+      _wheelSendTimer = null;
+      if (_wheelPendingSend) { _wheelPendingSend = false; sendColorSolid(); }
+    }, WHEEL_THROTTLE_MS);
+  } else {
+    _wheelPendingSend = true;
+  }
+}
+
+// Gradient sachet presets — picks representative midpoint color
+var SACHET_GRADS = {
+  sunset:  [[255,107,53],[255,0,128],[123,47,255]],
+  aurora:  [[0,240,255],[0,230,118],[191,95,255]],
+  fire:    [[255,0,0],[255,140,0],[255,255,0]],
+  ocean:   [[0,51,255],[0,191,255],[0,229,255]],
+  candy:   [[255,128,171],[224,64,251],[100,181,246]],
+  forest:  [[27,94,32],[102,187,106],[178,223,219]]
+};
+
+// Track whether gradient i-mode is currently active on device
+S.gradientActive = false;
+
+// If gradient is active, power cycle to clear i-mode, then run callback
+function clearGradientIfNeeded(ip, cb) {
+  if (!S.gradientActive) { cb(); return; }
+  S.gradientActive = false;
+  wPost(ip, '/json/state', { on: false }).then(function() {
+    setTimeout(function() {
+      wPost(ip, '/json/state', { on: true }).then(function() {
+        setTimeout(cb, 100);
+      });
+    }, 150);
+  });
+}
+
+function setSachetGrad(name) {
+  var g = SACHET_GRADS[name];
+  if (!g) return;
+  if (!S.activeIp) { toast('No device selected'); return; }
+
+  S.colors[0] = [g[0][0], g[0][1], g[0][2], 0];
+  S.colors[1] = [g[1][0], g[1][1], g[1][2], 0];
+  S.colors[2] = [g[2][0], g[2][1], g[2][2], 0];
+  updateSwatches(); drawWheel();
+
+  var dev = S.devices.find(function(d){ return d.ip === S.activeIp; });
+  var total = (dev && dev.leds) ? dev.leds : 60;
+  var third = Math.floor(total / 3);
+
+  function toHex(c) {
+    return (('0' + c[0].toString(16)).slice(-2) +
+            ('0' + c[1].toString(16)).slice(-2) +
+            ('0' + c[2].toString(16)).slice(-2)).toUpperCase();
+  }
+
+  var h0 = toHex(g[0]), h1 = toHex(g[1]), h2 = toHex(g[2]);
+  var payload = { seg: { i: [
+    0,         third,      h0,
+    third,     third * 2,  h1,
+    third * 2, total,      h2
+  ]}};
+
+  var ip = S.activeIp;
+  clearTimeout(S.sendTimer);
+  wPost(ip, '/json/state', payload);
+  S.gradientActive = true;
+}
+
+function selSwatch(i) {
+  S.swatch = i;
+  _tempBase = null;
+  document.querySelectorAll('.csw').forEach((s,j) => s.classList.toggle('active', i===j));
+  var ts = document.getElementById('tempSlider');
+  if (ts) ts.value = 128;
+  drawWheel();
+}
+
+// Sends solid color — power cycles first only if gradient i-mode was active
+function sendColorSolid() {
+  if (!S.activeIp) return;
+  S.fx = 0;
+  clearTimeout(S.sendTimer);
+  var ip = S.activeIp;
+  var col = [S.colors[0].slice(0,3), S.colors[1].slice(0,3), S.colors[2].slice(0,3)];
+  clearGradientIfNeeded(ip, function() {
+    wPost(ip, '/json/state', { seg: [{ fx: 0, pal: 0, col: col }] });
+  });
+  renderFx();
+}
+
+function setFps(v) {
+  document.getElementById('fpsSlider').value = v;
+  document.getElementById('fpsVal').textContent = v;
+  document.querySelectorAll('.fchip').forEach(c => c.classList.toggle('active', +c.textContent === v));
+  toast('FPS → ' + v);
+}
+
+function setFx(id) {
+  S.fx = id;
+  var ip = S.activeIp;
+  if (!ip) return;
+  clearGradientIfNeeded(ip, function() {
+    api({ seg: [{ fx: id }] });
+  });
+  renderFx();
+}
+function setPal(id) { S.pal = id; api({ seg: [{ pal: id }] }); renderPal(); }
+
+// ─── ADVANCED SETTINGS FUNCTIONS ─────────────────────
+function setNightlight() {
+  const on  = document.getElementById('nlEnable').checked;
+  const dur = +document.getElementById('nlDurSlider').value;
+  const tbri = +document.getElementById('nlTarSlider').value;
+  const fade = document.getElementById('nlFade').checked;
+  S.nl = { on, dur, tbri, fade };
+  api({ nl: { on, dur, tbri, fade } });
+}
+
+function setTrans(v) {
+  document.getElementById('trSlider').value = v;
+  document.getElementById('trVal').textContent = (v/10).toFixed(1) + ' s';
+  api({ transition: v });
+}
+
+// Reset segments to a single full-strip segment
+let _resetSegsConfirm = false;
+function confirmResetSegs() {
+  const btn = document.querySelector('.advbtn-danger');
+  if (!_resetSegsConfirm) {
+    _resetSegsConfirm = true;
+    if (btn) { btn.style.borderColor = 'var(--err)'; btn.style.color = 'var(--err)'; btn.innerHTML = btn.innerHTML.replace('Reset Segments','Confirm Reset'); }
+    setTimeout(() => { _resetSegsConfirm = false; if (btn) { btn.style.borderColor=''; btn.style.color=''; btn.innerHTML = btn.innerHTML.replace('Confirm Reset','Reset Segments'); } }, 3000);
+    return;
+  }
+  _resetSegsConfirm = false;
+  api({ seg: [{ id: 0, start: 0, stop: 0, sel: true }] });
+  toast('Segments reset');
+}
+
+// Render segment rows in advanced panel
+function renderSegments() {
+  const el = document.getElementById('segList');
+  if (!el) return;
+  if (!S.segments || !S.segments.length) {
+    el.innerHTML = '<div style="color:var(--mu);font-size:12px;text-align:center;padding:10px 0">No segments loaded</div>';
+    return;
+  }
+  el.innerHTML = S.segments.map(seg => {
+    const name = seg.n || ('Segment ' + seg.id);
+    const leds = (seg.stop || 0) - (seg.start || 0);
+    return `<div class="segrow">
+      <div class="segrow-id">${seg.id}</div>
+      <div class="segrow-info">
+        <div class="segrow-name">${name}</div>
+        <div class="segrow-meta">LEDs ${seg.start}–${seg.stop - 1} &nbsp;·&nbsp; ${leds} px</div>
+      </div>
+      <div class="segrow-dot${seg.on !== false ? ' on' : ''}"></div>
+    </div>`;
+  }).join('');
+}
+
+// Load presets from device for the Advanced panel
+async function loadPresetsAdv() {
+  if (!S.activeIp) return;
+  try {
+    const r = await wGet(S.activeIp, '/presets.json', 3000);
+    if (r) { S.presets = r; renderPresetsAdv(); }
+  } catch(e) {}
+}
+
+function renderPresetsAdv() {
+  const el = document.getElementById('presetList');
+  if (!el) return;
+  const keys = Object.keys(S.presets || {}).filter(k => k !== '0' && S.presets[k] && S.presets[k].n);
+  const activePs = S.currentPreset || -1;
+  const saveTile = '<div class="preset-sq-save" onclick="saveCurrentPreset()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>SAVE</div>';
+  const presetTiles = keys.sort((a,b) => +a - +b).map(k => {
+    const p = S.presets[k];
+    const isActive = +k === activePs;
+    const safeName = p.n.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return '<div class="preset-sq' + (isActive ? ' active' : '') + '" data-pid="' + k + '" onclick="applyPresetTile(this)">'
+      + '<span class="preset-sq-id">' + k + '</span>'
+      + '<span class="preset-sq-name">' + safeName + '</span>'
+      + '</div>';
+  });
+  // Pad last row so save tile always starts a fresh bottom row
+  const remainder = presetTiles.length % 3;
+  const spacers = remainder === 0 ? '' : Array(3 - remainder).fill('<div class="preset-sq-ghost"></div>').join('');
+  el.innerHTML = presetTiles.join('') + spacers + saveTile;
+}
+function applyPresetTile(el) {
+  const k = el.dataset.pid;
+  if (!k) return;
+  const p = S.presets[k];
+  api({ ps: +k });
+  S.currentPreset = +k;
+  renderPresetsAdv();
+  toast(p ? p.n : 'Preset ' + k);
+}
+function saveCurrentPreset() {
+  const name = prompt('Preset name:', 'My Preset');
+  if (!name) return;
+  if (!S.activeIp) { toast('No device connected'); return; }
+  // Find lowest unused ID
+  const used = new Set(Object.keys(S.presets || {}).map(Number));
+  let id = 1; while (used.has(id) && id <= 250) id++;
+  // Send a clean, minimal JSON payload directly to /json/state (not /json/si).
+  // n = preset name, ib = include brightness, sb = save segment bounds.
+  const payload = JSON.stringify({ psave: id, n: name, ib: true, sb: true });
+  const url = 'http://' + S.activeIp + '/json/state';
+  const capHttp = _getCapHttp();
+  if (capHttp) {
+    capHttp.post({ url, data: payload, headers: { 'Content-Type': 'application/json' }, readTimeout: 4000, connectTimeout: 4000 })
+      .then(() => { toast('✅ Preset saved: ' + name); setTimeout(loadPresetsAdv, 1200); })
+      .catch(() => toast('❌ Save failed'));
+  } else {
+    const x = new XMLHttpRequest();
+    x.open('POST', url, true);
+    x.timeout = 4000;
+    x.setRequestHeader('Content-Type', 'application/json');
+    x.onload = () => {
+      if (x.status < 300) { toast('✅ Preset saved: ' + name); setTimeout(loadPresetsAdv, 1200); }
+      else toast('❌ Save failed (' + x.status + ')');
+    };
+    x.onerror = x.ontimeout = () => toast('❌ Save failed');
+    x.send(payload);
+  }
+}
+
+// Refresh device info for Advanced panel
+async function loadInfoAdv() {
+  if (!S.activeIp) return;
+  const data = await wGet(S.activeIp, '/json/info', 3000);
+  if (!data) return;
+  const d = data;
+  const uptime = (() => {
+    const t = d.uptime || 0;
+    const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+    return (h ? h + 'h ' : '') + (m ? m + 'm ' : '') + s + 's';
+  })();
+  const rows = [
+    ['Version', d.ver || '—'],
+    ['Build', d.vid || '—'],
+    ['LEDs', d.leds?.count + (d.leds?.rgbw ? ' (RGBW)' : ' (RGB)')],
+    ['FPS', (d.leds?.fps || 0) + ' fps'],
+    ['Free Heap', d.freeheap ? (d.freeheap / 1024).toFixed(1) + ' kB' : '—'],
+    ['Uptime', uptime],
+    ['Signal', (d.wifi?.signal || 0) + '% (' + (d.wifi?.rssi || 0) + ' dBm)'],
+    ['MAC', d.mac || '—'],
+    ['Storage', d.fs ? d.fs.u + '/' + d.fs.t + ' kB' : '—'],
+    ['Platform', (d.arch || '') + ' ' + (d.core || '')],
+  ];
+  document.getElementById('infoBox').innerHTML = rows.map(([k,v]) =>
+    `<div class="inforow"><span>${k}</span><span>${v}</span></div>`
+  ).join('');
+  populateCfgFromDevice(d);
+}
+
+// Confirm reboot
+let _rebootConfirm = false;
+function confirmReboot() {
+  const btn = document.getElementById('rebootBtn');
+  if (!_rebootConfirm) {
+    _rebootConfirm = true;
+    if (btn) { btn.style.borderColor = 'var(--err)'; btn.innerHTML = btn.innerHTML.replace('Reboot','Confirm?'); }
+    setTimeout(() => {
+      _rebootConfirm = false;
+      if (btn) { btn.style.borderColor = ''; btn.innerHTML = btn.innerHTML.replace('Confirm?','Reboot'); }
+    }, 3000);
+    return;
+  }
+  _rebootConfirm = false;
+  if (!S.activeIp) return;
+  wPost(S.activeIp, '/json', { reboot: true });
+  toast('Rebooting device…');
+}
+
+// ─── ABL (Automatic Brightness Limiter) ──────────────
+function toggleABL() {
+  const enabled = document.getElementById('cfgABLEnable').checked;
+  const row     = document.getElementById('cfgMaxCurrentRow');
+  const inp     = document.getElementById('cfgMaxCurrent');
+  row.style.opacity       = enabled ? '1'    : '0.35';
+  row.style.pointerEvents = enabled ? 'auto' : 'none';
+  inp.disabled            = !enabled;
+  if (enabled && (!inp.value || +inp.value < 1)) inp.value = 850;
+}
+
+function setMaxCurrent(mA) {
+  const inp = document.getElementById('cfgMaxCurrent');
+  if (inp) { inp.value = mA; }
+  // highlight the matching chip
+  document.querySelectorAll('#cfgMaxCurrentRow .cfg-chip').forEach(c => {
+    const v = parseInt(c.textContent) * (c.textContent.includes('A') && !c.textContent.includes('0.') ? 1000 : 1);
+    c.classList.toggle('active', false);
+  });
+}
+
+function updateEstCurrent(pwr) {
+  const el = document.getElementById('cfgEstCurrent');
+  if (!el) return;
+  if (!pwr || pwr <= 0) { el.textContent = ''; return; }
+  const disp = pwr >= 1000
+    ? (pwr / 1000).toFixed(pwr >= 10000 ? 1 : 2) + ' A estimated'
+    : Math.round(pwr / 50) * 50 + ' mA estimated';
+  el.textContent = disp;
+}
+
+
+function toggleCfg(id) {
+  const hdr = document.querySelector(`#cfg-${id}`).previousElementSibling;
+  const body = document.getElementById(`cfg-${id}`);
+  const isOpen = body.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.cfg-body').forEach(b => b.classList.remove('open'));
+  document.querySelectorAll('.cfg-hdr').forEach(h => h.classList.remove('open'));
+  // Open clicked if was closed
+  if (!isOpen) { body.classList.add('open'); hdr.classList.add('open'); }
+}
+
+function toggle2dOptions() {
+  const en = document.getElementById('cfg2dEnable').checked;
+  document.getElementById('cfg2dOptions').style.display = en ? 'block' : 'none';
+}
+function toggleMQTTOptions() {
+  const en = document.getElementById('cfgMQTTEnable').checked;
+  document.getElementById('cfgMQTTOptions').style.display = en ? 'block' : 'none';
+}
+
+// ─── CONFIG SAVE FUNCTIONS ─────────────────────────
+function cfgReboot() {
+  if (!S.activeIp) { toast('No device connected'); return; }
+  wPost(S.activeIp, '/json', { reboot: true });
+  toast('Settings saved — rebooting…');
+}
+
+async function cfgPost(path, data) {
+  if (!S.activeIp) { toast('No device connected'); return; }
+  try {
+    // WLED /settings/* endpoints require form-encoded POST, not JSON
+    const body = Object.entries(data)
+      .filter(([,v]) => v !== '' && v !== null && v !== undefined && !Number.isNaN(v))
+      .map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
+      .join('&');
+    const url = 'http://' + S.activeIp + path;
+    const capHttp = _getCapHttp();
+    if (capHttp) {
+      await capHttp.post({ url, data: body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, readTimeout: 5000, connectTimeout: 4000 });
+    } else {
+      await new Promise((resolve, reject) => {
+        const x = new XMLHttpRequest();
+        x.open('POST', url, true);
+        x.timeout = 5000;
+        x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        x.onload = () => resolve(x.status);
+        x.onerror = () => reject(new Error('network'));
+        x.ontimeout = () => reject(new Error('timeout'));
+        x.send(body);
+      });
+    }
+    toast('✅ Saved');
+  } catch(e) { toast('❌ Save failed'); }
+}
+
+// ─── WIFI SCAN ────────────────────────────────────────
+async function doWifiScan() {
+  if (!S.activeIp) { toast('Connect a device first'); return; }
+  const btn  = document.getElementById('wifiScanBtn');
+  const icon = document.getElementById('wifiScanIcon');
+  const text = document.getElementById('wifiScanText');
+  const res  = document.getElementById('wifiScanResults');
+
+  // Scanning state
+  btn.disabled = true;
+  icon.style.animation = 'spin 1s linear infinite';
+  text.textContent = 'Scanning…';
+  res.style.display = 'none';
+
+  try {
+    // Ask the WLED device to scan: GET /json/networks or fallback to networks endpoint
+    let networks = null;
+    const r = await wGet(S.activeIp, '/json/networks', 5000);
+    if (r && Array.isArray(r.networks)) {
+      networks = r.networks; // [{ssid, rssi, enc}, ...]
+    } else {
+      // Try Capacitor WiFi plugin if available
+      const WifiPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.WifiScan;
+      if (WifiPlugin) {
+        const result = await WifiPlugin.scan();
+        networks = (result.networks || []).map(n => ({ ssid: n.ssid, rssi: n.level || n.rssi || -80, enc: n.capabilities ? 1 : 0 }));
+      }
+    }
+    if (networks && networks.length) {
+      // Deduplicate by SSID, keep strongest signal
+      const seen = {};
+      networks.forEach(n => {
+        if (!n.ssid) return;
+        if (!seen[n.ssid] || n.rssi > seen[n.ssid].rssi) seen[n.ssid] = n;
+      });
+      const sorted = Object.values(seen).sort((a, b) => (b.rssi || -100) - (a.rssi || -100));
+      renderWifiResults(sorted);
+    } else {
+      res.innerHTML = '<div style="color:var(--mu);font-size:11px;text-align:center;padding:8px">No networks found — enter SSID manually</div>';
+      res.style.display = 'flex';
+    }
+  } catch(e) {
+    res.innerHTML = '<div style="color:var(--mu);font-size:11px;text-align:center;padding:8px">Scan unavailable — enter SSID manually</div>';
+    res.style.display = 'flex';
+  } finally {
+    btn.disabled = false;
+    icon.style.animation = '';
+    text.textContent = 'Scan Again';
+  }
+}
+
+function rssiToBars(rssi) {
+  // 4 bars: >-55, >-67, >-80, else 1
+  const level = rssi >= -55 ? 4 : rssi >= -67 ? 3 : rssi >= -80 ? 2 : 1;
+  const color = level >= 3 ? 'var(--ok)' : level === 2 ? 'var(--acc)' : 'var(--err)';
+  const heights = [4, 7, 10, 14];
+  return heights.map((h, i) =>
+    `<span style="height:${h}px;background:${i < level ? color : 'var(--b2)'}"></span>`
+  ).join('');
+}
+
+function renderWifiResults(networks) {
+  const res = document.getElementById('wifiScanResults');
+  res.innerHTML = networks.map(n => {
+    const lock = n.enc ? `<svg class="wifi-net-lock" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>` : '';
+    const rssiLabel = n.rssi ? n.rssi + ' dBm' : '';
+    return `<div class="wifi-net" onclick="selectWifiNet(this,'${n.ssid.replace(/'/g,"\\'")}',${n.enc?1:0})">
+      <div class="wifi-net-bars">${rssiToBars(n.rssi || -90)}</div>
+      <span class="wifi-net-name">${n.ssid}</span>
+      <span class="wifi-net-rssi">${rssiLabel}</span>
+      ${lock}
+    </div>`;
+  }).join('');
+  res.style.display = 'flex';
+}
+
+function selectWifiNet(el, ssid, encrypted) {
+  // Highlight selection
+  document.querySelectorAll('#wifiScanResults .wifi-net').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  // Fill SSID field
+  document.getElementById('cfgWifiSSID').value = ssid;
+  // Focus password if encrypted
+  if (encrypted) {
+    const passEl = document.getElementById('cfgWifiPass');
+    passEl.value = '';
+    passEl.focus();
+  }
+}
+
+function toggleWifiPassVis() {
+  const inp = document.getElementById('cfgWifiPass');
+  const eye = document.getElementById('wifiPassEye');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  eye.innerHTML = show
+    ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`
+    : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+}
+
+function saveCfgWifi() {
+  const data = {
+    CS: document.getElementById('cfgWifiSSID').value,
+    CP: document.getElementById('cfgWifiPass').value,
+    I0: document.getElementById('cfgWifiIP').value,
+    G0: document.getElementById('cfgWifiGW').value,
+    S0: document.getElementById('cfgWifiSN').value,
+    AS: document.getElementById('cfgApSSID').value,
+    AP: document.getElementById('cfgApPass').value,
+    AC: +document.getElementById('cfgApCh').value,
+    AO: document.getElementById('cfgApOpen').checked ? 1 : 0,
+    AA: document.getElementById('cfgApAlways').checked ? 1 : 0,
+  };
+  cfgPost('/settings/wifi', data);
+  setTimeout(cfgReboot, 400);
+}
+
+async function saveCfgLed() {
+  if (!S.activeIp) { toast('No device connected'); return; }
+
+  const ablEnabled = document.getElementById('cfgABLEnable').checked;
+  const ledCount   = +document.getElementById('cfgLedCount').value || 1;
+  const ledType    = +document.getElementById('cfgLedType').value;
+  const colorOrder = +document.getElementById('cfgColorOrder').value;
+  const reversed   = document.getElementById('cfgLedReverse').checked;
+  const skipFirst  = document.getElementById('cfgLedSkip').checked;
+  const maxCurrent = +document.getElementById('cfgMaxCurrent').value || 850;
+  const maxBri     = +document.getElementById('cfgMaxBri').value;
+  const bootBri    = +document.getElementById('cfgBootBri').value;
+  const bootOn     = document.getElementById('cfgBootOn').checked;
+  const whiteBalance = +document.getElementById('cfgWhiteBalance').value;
+  const cctBlend   = +document.getElementById('cfgCCTBlend').value;
+  const pin        = window._wledLedPin !== undefined ? window._wledLedPin : 2;
+
+  // Build /json/cfg payload — matches WLED's internal cfg structure
+  const payload = {
+    hw: {
+      led: {
+        maxpwr: ablEnabled ? maxCurrent : 0,
+        maxbri: maxBri,
+        rgbwm:  whiteBalance,
+        cct:    cctBlend,
+        ins: [{
+          pin:   [pin],
+          len:   ledCount,
+          type:  ledType,
+          order: colorOrder,
+          rev:   reversed,
+          skip:  skipFirst ? 1 : 0,
+        }]
+      },
+      bri: {
+        val:  bootBri,
+        boot: bootOn,
+      }
+    }
+  };
+
+  try {
+    const url = 'http://' + S.activeIp + '/json/cfg';
+    const body = JSON.stringify(payload);
+    const capHttp = _getCapHttp();
+    let ok = false;
+    if (capHttp) {
+      const r = await capHttp.post({ url, data: body, headers: { 'Content-Type': 'application/json' }, readTimeout: 5000, connectTimeout: 4000 });
+      ok = r && r.status >= 200 && r.status < 300;
+    } else {
+      ok = await new Promise(resolve => {
+        const x = new XMLHttpRequest();
+        x.open('POST', url, true); x.timeout = 5000;
+        x.setRequestHeader('Content-Type', 'application/json');
+        x.onload = () => resolve(x.status >= 200 && x.status < 300);
+        x.onerror = x.ontimeout = () => resolve(false);
+        x.send(body);
+      });
+    }
+    if (ok) {
+      toast('✅ LED settings saved');
+      setTimeout(cfgReboot, 600);
+    } else {
+      // Fallback to form POST for older WLED firmware
+      _saveCfgLedForm(ablEnabled, ledCount, ledType, colorOrder, reversed, skipFirst, maxCurrent, maxBri, bootBri, bootOn, whiteBalance, cctBlend, pin);
+    }
+  } catch(e) {
+    _saveCfgLedForm(ablEnabled, ledCount, ledType, colorOrder, reversed, skipFirst, maxCurrent, maxBri, bootBri, bootOn, whiteBalance, cctBlend, pin);
+  }
+}
+
+// Fallback for older WLED firmware that lacks /json/cfg write support
+function _saveCfgLedForm(ablEnabled, ledCount, ledType, colorOrder, reversed, skipFirst, maxCurrent, maxBri, bootBri, bootOn, whiteBalance, cctBlend, pin) {
+  const data = {
+    LC0: ledCount, LT0: ledType, CO0: colorOrder,
+    RL0: reversed ? 1 : 0, SL0: skipFirst ? 1 : 0,
+    L00: pin, LEDCNT: 1,
+    MA: maxCurrent, AB: maxBri, GB: bootBri,
+    BO: bootOn ? 1 : 0, WB: whiteBalance, CB: cctBlend,
+  };
+  if (ablEnabled) data.LA = 1;
+  cfgPost('/settings/leds', data);
+  setTimeout(cfgReboot, 400);
+}
+
+async function saveCfg2D() {
+  if (!S.activeIp) { toast('No device connected'); return; }
+  const en = document.getElementById('cfg2dEnable').checked;
+  const payload = {
+    "2D": {
+      matrx: [{
+        type: en ? 2 : 0,
+        W:    +document.getElementById('cfg2dW').value || 8,
+        H:    +document.getElementById('cfg2dH').value || 8,
+        s:    document.getElementById('cfg2dSerp').checked,
+        T:    document.getElementById('cfg2dTranspose').checked,
+        C:    +document.getElementById('cfg2dCorner').value,
+        PH:   (+document.getElementById('cfg2dPH').value || 1),
+        PV:   (+document.getElementById('cfg2dPV').value || 1),
+      }]
+    }
+  };
+  try {
+    const url = 'http://' + S.activeIp + '/json/cfg';
+    const body = JSON.stringify(payload);
+    const capHttp = _getCapHttp();
+    let ok = false;
+    if (capHttp) {
+      const r = await capHttp.post({ url, data: body, headers: { 'Content-Type': 'application/json' }, readTimeout: 5000, connectTimeout: 4000 });
+      ok = r && r.status >= 200 && r.status < 300;
+    } else {
+      ok = await new Promise(resolve => {
+        const x = new XMLHttpRequest();
+        x.open('POST', url, true); x.timeout = 5000;
+        x.setRequestHeader('Content-Type', 'application/json');
+        x.onload = () => resolve(x.status >= 200 && x.status < 300);
+        x.onerror = x.ontimeout = () => resolve(false);
+        x.send(body);
+      });
+    }
+    if (ok) {
+      toast('✅ 2D settings saved');
+      setTimeout(cfgReboot, 600);
+    } else {
+      toast('❌ Save failed — check device connection');
+    }
+  } catch(e) {
+    toast('❌ Save failed: ' + (e.message || e));
+  }
+}
+
+function saveCfgUI() {
+  const data = {
+    DS: document.getElementById('cfgUIName').value,
+    MD: document.getElementById('cfgMDNS').value,
+    ST: document.getElementById('cfgSyncRec').checked ? 1 : 0,
+    SU: document.getElementById('cfgSimpleUI').checked ? 1 : 0,
+    SD: document.getElementById('cfgServerDesc').value,
+  };
+  cfgPost('/settings/ui', data);
+  setTimeout(cfgReboot, 400);
+}
+
+function saveCfgSync() {
+  const data = {
+    UP: +document.getElementById('cfgUDPPort').value || 21324,
+    U2: +document.getElementById('cfgUDPPort2').value || 0,
+    ES: document.getElementById('cfgE131Enable').checked ? 1 : 0,
+    EU: +document.getElementById('cfgDMXUniverse').value || 1,
+    DM: +document.getElementById('cfgDMXMode').value,
+    DA: +document.getElementById('cfgDMXAddr').value || 1,
+    DD: document.getElementById('cfgDDPEnable').checked ? 1 : 0,
+    HY: document.getElementById('cfgHyperionEnable').checked ? 1 : 0,
+    RT: +document.getElementById('cfgRTTimeout').value || 2500,
+    MO: document.getElementById('cfgMQTTEnable').checked ? 1 : 0,
+    MS: document.getElementById('cfgMQTTHost').value,
+    ML: +document.getElementById('cfgMQTTPort').value || 1883,
+    MU: document.getElementById('cfgMQTTUser').value,
+    MP: document.getElementById('cfgMQTTPass').value,
+    MC: document.getElementById('cfgMQTTClientID').value,
+    MT: document.getElementById('cfgMQTTTopic').value,
+    MG: document.getElementById('cfgMQTTGroup').value,
+    AE: document.getElementById('cfgAlexaEnable').checked ? 1 : 0,
+    AN: document.getElementById('cfgAlexaName').value,
+    HE: document.getElementById('cfgHueEnable').checked ? 1 : 0,
+    HI: document.getElementById('cfgHueIP').value,
+    HL: +document.getElementById('cfgHueLamp').value || 1,
+  };
+  cfgPost('/settings/sync', data);
+  setTimeout(cfgReboot, 400);
+}
+
+function saveCfgTime() {
+  const data = {
+    NT: document.getElementById('cfgNTPServer').value,
+    TZ: +document.getElementById('cfgTimezone').value,
+    UO: +document.getElementById('cfgUTCOffset').value || 0,
+    BP: +document.getElementById('cfgBootPreset').value || 0,
+    BS: +document.getElementById('cfgBtnShort').value || 0,
+    BL: +document.getElementById('cfgBtnLong').value || 0,
+    BD: +document.getElementById('cfgBtnDouble').value || 0,
+    BT: +document.getElementById('cfgBtnTouch').value || 0,
+    TP: +document.getElementById('cfgTimerPreset').value || 0,
+    AON: +document.getElementById('cfgAlexaOn').value || 0,
+    AOFF: +document.getElementById('cfgAlexaOff').value || 0,
+  };
+  cfgPost('/settings/time', data);
+  setTimeout(cfgReboot, 400);
+}
+
+function saveCfgUsermods() {
+  const data = {
+    TE: document.getElementById('cfgTempEnable').checked ? 1 : 0,
+    TG: +document.getElementById('cfgTempPin').value || 16,
+    TU: +document.getElementById('cfgTempUnit').value,
+    RE: document.getElementById('cfgEncEnable').checked ? 1 : 0,
+    RD: +document.getElementById('cfgEncDT').value || 18,
+    RC: +document.getElementById('cfgEncCLK').value || 5,
+    RS: +document.getElementById('cfgEncSW').value || 19,
+    AI: document.getElementById('cfgAnalogEnable').checked ? 1 : 0,
+    AP: +document.getElementById('cfgAnalogPin').value || 34,
+    AF: +document.getElementById('cfgAnalogFunc').value,
+  };
+  cfgPost('/settings/um', data);
+  setTimeout(cfgReboot, 400);
+}
+
+// Factory reset
+let _factoryConfirm = false;
+function confirmFactoryReset() {
+  const btn = event.currentTarget;
+  if (!_factoryConfirm) {
+    _factoryConfirm = true;
+    btn.style.color = 'var(--err)'; btn.style.borderColor = 'var(--err)';
+    btn.innerHTML = btn.innerHTML.replace('Factory Reset', 'Confirm? (Irreversible!)');
+    setTimeout(() => {
+      _factoryConfirm = false;
+      btn.style.color = ''; btn.style.borderColor = '';
+      btn.innerHTML = btn.innerHTML.replace('Confirm? (Irreversible!)', 'Factory Reset');
+    }, 3000);
+    return;
+  }
+  _factoryConfirm = false;
+  if (!S.activeIp) return;
+  wPost(S.activeIp, '/json', { factoryReset: true });
+  toast('Factory reset sent — device will reboot');
+}
+
+// OTA update stub
+function doOTAUpdate() {
+  const f = document.getElementById('otaFile').files[0];
+  if (!f) { toast('Select a .bin file first'); return; }
+  if (!S.activeIp) { toast('No device connected'); return; }
+  const fd = new FormData(); fd.append('update', f);
+  fetch('http://' + S.activeIp + '/update', { method: 'POST', body: fd })
+    .then(r => r.ok ? toast('✅ OTA complete — rebooting') : toast('❌ OTA failed'))
+    .catch(() => toast('❌ OTA upload error'));
+}
+
+// Populate config fields from device info when available
+function populateCfgFromDevice(info) {
+  if (!info) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+  const chk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+  set('cfgUIName', info.name);
+  set('cfgMDNS', info.mdns);
+  if (info.leds) {
+    // LED count — always populate from info
+    if (info.leds.count) set('cfgLedCount', info.leds.count);
+    // Max brightness ceiling
+    if (info.leds.maxbri !== undefined) set('cfgMaxBri', info.leds.maxbri);
+    // Boot brightness
+    if (info.leds.bootbri !== undefined) set('cfgBootBri', info.leds.bootbri);
+    // Show live estimated draw
+    updateEstCurrent(info.leds.pwr || 0);
+    // Color order (if exposed)
+    if (info.leds.cct !== undefined) {
+      // hasCCT hint — enable white balance section visibility
+    }
+  }
+  // ABL config is not fully exposed by /json/info — load remaining values from /settings/leds HTML
+  loadCfgLedValues();
+}
+
+// Fetch the device's /settings/leds HTML page and parse the MA (max current) field.
+// /json/info only has leds.pwr (live draw estimate) — the configured limit is only in the settings page.
+async function loadCfgLedValues() {
+  if (!S.activeIp) return;
+
+  // Primary: use /json/cfg (stable WLED JSON API, available since WLED 0.13+)
+  const cfg = await wGet(S.activeIp, '/json/cfg', 4000);
+
+  const setV = (id, val) => {
+    if (val === undefined || val === null) return;
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+  const setC = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = !!val;
+  };
+  const setSel = (id, val) => {
+    if (val === undefined || val === null) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    for (let i = 0; i < el.options.length; i++) {
+      if (String(el.options[i].value) === String(val)) { el.selectedIndex = i; return; }
+    }
+  };
+
+  if (cfg) {
+    const hw  = cfg.hw  || {};
+    const led = hw.led  || {};
+    const bri = hw.bri  || {};
+    const ins = (led.ins && led.ins[0]) || {};
+
+    if (ins.len   !== undefined) setV('cfgLedCount', ins.len);
+    if (ins.type  !== undefined) setSel('cfgLedType', ins.type);
+    if (ins.order !== undefined) setSel('cfgColorOrder', ins.order);
+    if (ins.rev   !== undefined) setC('cfgLedReverse', ins.rev);
+    if (ins.skip  !== undefined) setC('cfgLedSkip', ins.skip > 0);
+    if (ins.pin   && ins.pin[0] !== undefined) window._wledLedPin = ins.pin[0];
+
+    if (led.maxpwr !== undefined) {
+      const ablOn = led.maxpwr > 0;
+      const ablEl = document.getElementById('cfgABLEnable');
+      const maInp = document.getElementById('cfgMaxCurrent');
+      if (ablEl) { ablEl.checked = ablOn; toggleABL(); }
+      if (maInp && led.maxpwr > 0) maInp.value = led.maxpwr;
+    }
+    if (led.maxbri !== undefined) setV('cfgMaxBri', led.maxbri);
+    if (led.rgbwm  !== undefined) setSel('cfgWhiteBalance', led.rgbwm);
+    if (led.cct    !== undefined) setSel('cfgCCTBlend', led.cct);
+    if (bri.val    !== undefined) setV('cfgBootBri', bri.val);
+    if (bri.boot   !== undefined) setC('cfgBootOn', bri.boot);
+    return;
+  }
+
+  // Fallback: scrape /settings/leds HTML for older firmware
+  const url = 'http://' + S.activeIp + '/settings/leds';
+  let html = null;
+  try {
+    const capHttp = _getCapHttp();
+    if (capHttp) {
+      const r = await Promise.race([
+        capHttp.get({ url, headers: {}, readTimeout: 5000, connectTimeout: 5000 }),
+        new Promise(res => setTimeout(() => res(null), 5200))
+      ]);
+      if (r && r.status >= 200 && r.status < 300)
+        html = typeof r.data === 'string' ? r.data : null;
+    } else {
+      html = await new Promise(resolve => {
+        const x = new XMLHttpRequest();
+        let done = false;
+        const fin = v => { if (!done) { done = true; resolve(v); } };
+        x.open('GET', url, true); x.timeout = 5000; x.responseType = 'text';
+        x.onload = () => fin(x.status >= 200 && x.status < 300 ? x.responseText : null);
+        x.onerror = x.ontimeout = () => fin(null);
+        x.send();
+      });
+    }
+  } catch(e) { html = null; }
+  if (!html) return;
+
+  // Parse unquoted WLED HTML attrs — name/value may or may not be quoted
+  function hInp(name) {
+    var re = new RegExp('<input[^>]+name=["' + "'" + '"]?' + name + '["' + "'" + '"]?[\\s>][^>]*>', 'i');
+    var tag = html.match(re);
+    if (!tag) return null;
+    var vm = tag[0].match(/value=["' + "'" + '"]?([^"' + "'" + '\\s>]+)/i);
+    return vm ? vm[1] : null;
+  }
+  function hChk(name) {
+    var re = new RegExp('<input[^>]+name=["' + "'" + '"]?' + name + '["' + "'" + '"]?[\\s>][^>]*>', 'i');
+    var tag = html.match(re);
+    return tag ? /\bchecked\b/i.test(tag[0]) : false;
+  }
+  function hSel(name) {
+    var re = new RegExp('<select[^>]+name=["' + "'" + '"]?' + name + '["' + "'" + '"]?[\\s>][^>]*>([\\s\\S]*?)<\\/select>', 'i');
+    var blk = html.match(re);
+    if (!blk) return null;
+    var opt = blk[1].match(/<option[^>]+\bselected\b[^>]*>/i);
+    if (!opt) return null;
+    var vm  = opt[0].match(/value=["' + "'" + '"]?([^"' + "'" + '\\s>]+)/i);
+    return vm ? vm[1] : null;
+  }
+
+  var lc = hInp('LC0') || hInp('LC'); if (lc && +lc > 0) setV('cfgLedCount', lc);
+  var lt = hSel('LT0') || hSel('LT') || hInp('LT0') || hInp('LT'); if (lt != null) setSel('cfgLedType', lt);
+  var co = hSel('CO0') || hSel('CO') || hInp('CO0') || hInp('CO'); if (co != null) setSel('cfgColorOrder', co);
+  setC('cfgLedReverse', hChk('RL0') || hChk('RL'));
+  setC('cfgLedSkip',    hChk('SL0') || hChk('SL'));
+  var ab = hInp('AB'); if (ab != null) setV('cfgMaxBri', ab);
+  var gb = hInp('GB'); if (gb != null) setV('cfgBootBri', gb);
+  setC('cfgBootOn', hChk('BO'));
+  var wb = hSel('WB') || hInp('WB'); if (wb != null) setSel('cfgWhiteBalance', wb);
+  var cb = hSel('CB') || hInp('CB'); if (cb != null) setSel('cfgCCTBlend', cb);
+  var ma = hInp('MA');
+  var ablOn = hChk('LA');
+  var ablEl = document.getElementById('cfgABLEnable');
+  var maInp = document.getElementById('cfgMaxCurrent');
+  if (ablEl) { ablEl.checked = ablOn; toggleABL(); }
+  if (maInp && ma && +ma > 0) maInp.value = ma;
+}
+
+
+function syncUI() {
+  document.getElementById('powerBtn').className = 'hpwr' + (S.power ? ' on' : '');
+  const bri = document.getElementById('briSlider'); if (bri) { bri.value = S.bri; document.getElementById('briVal').textContent = S.bri; }
+  const spd = document.getElementById('spdSlider'); if (spd) { spd.value = S.sx; document.getElementById('spdVal').textContent = S.sx; }
+  const int = document.getElementById('intSlider'); if (int) { int.value = S.ix; document.getElementById('intVal').textContent = S.ix; }
+  // Advanced panel sync
+  const advBri = document.getElementById('advBriSlider');
+  if (advBri) { advBri.value = S.bri; document.getElementById('advBriVal').textContent = S.bri; }
+  const tr = document.getElementById('trSlider');
+  if (tr) { tr.value = S.transition; document.getElementById('trVal').textContent = (S.transition/10).toFixed(1) + ' s'; }
+  const nlE = document.getElementById('nlEnable'); if (nlE) nlE.checked = S.nl.on;
+  const nlF = document.getElementById('nlFade');   if (nlF) nlF.checked = S.nl.fade;
+  const nlD = document.getElementById('nlDurSlider'); if (nlD) { nlD.value = S.nl.dur; document.getElementById('nlDurVal').textContent = S.nl.dur + ' min'; }
+  const nlT = document.getElementById('nlTarSlider'); if (nlT) { nlT.value = S.nl.tbri; document.getElementById('nlTarVal').textContent = S.nl.tbri; }
+  const udpS = document.getElementById('udpSend');  if (udpS) udpS.checked = S.udpn.send;
+  const udpR = document.getElementById('udpRecv');  if (udpR) udpR.checked = S.udpn.recv;
+  renderSegments(); renderPresetsAdv();
+  updateSwatches(); drawWheel(); renderFx(); renderPal();
+}
+
+function updateBar() {
+  const dev = S.devices.find(d => d.ip === S.activeIp);
+  document.getElementById('mainDot').className = 'ddot' + (dev ? (dev.online ? ' on' : ' off') : '');
+  document.getElementById('mainName').textContent = dev ? dev.name : 'No device selected';
+  document.getElementById('mainMeta').textContent = dev ? dev.ip + ' · ' + dev.leds + ' LEDs' : 'Tap Devices tab to add';
+}
+
+function updBadge() {
+  const b = document.getElementById('devBadge');
+  b.textContent = S.devices.length;
+  b.style.display = S.devices.length ? 'flex' : 'none';
+}
+
+// ─── RENDER ──────────────────────────────────────────
+let _fxF = '', _palF = '';
+function filterFx(v) { _fxF = v; renderFx(); }
+function filterPal(v) { _palF = v; renderPal(); }
+
+function renderFx() {
+  const g = document.getElementById('fxGrid');
+  if (!S.effects.length) return;
+  const f = _fxF.toLowerCase();
+  const items = S.effects.map((n,i) => ({n,i}))
+    .filter(e => e.n !== 'RSVD' && e.n !== '-')
+    .filter(e => !f || e.n.toLowerCase().includes(f));
+  g.innerHTML = items.map(({n,i}) =>
+    `<div class="echip${S.fx===i?' active':''}" onclick="setFx(${i})">${n}</div>`
+  ).join('');
+}
+
+// Build a real gradient for any palette using hue distribution
+function palGrad(name, idx) {
+  // Named palette colors
+  const NAMED = {
+    'Default':    ['#f00','#f80','#ff0','#0f0','#0ff','#00f','#f0f'],
+    'Party':      ['#f08','#f80','#ff0','#0f8','#08f','#80f','#f04'],
+    'Ocean':      ['#003366','#005c99','#0099cc','#33ccff','#99eeff','#cdf5ff'],
+    'Fire':       ['#000','#700','#d00','#f40','#f90','#ffd','#fff'],
+    'Forest':     ['#002200','#004400','#006600','#228800','#55aa00','#88cc00'],
+    'Rainbow':    ['#f00','#f80','#ff0','#0f0','#0ff','#00f','#f0f'],
+    'Lava':       ['#200','#600','#a00','#f30','#f70','#faa','#fdd'],
+    'Cloud':      ['#6688aa','#88aacc','#aabbdd','#ccddee','#ddeeff','#eef5ff'],
+    'Sunset':     ['#1a0533','#6b1f4c','#c34b6a','#f77f50','#ffd180'],
+    'Rivendell':  ['#1a2e1a','#2d4a2d','#3d6b4a','#6b9e7a','#a8c9a0'],
+    'Breeze':     ['#1a3a5c','#2e6da4','#59a9d8','#9bd5ee','#d5eef9'],
+    'Red Reaf':   ['#4a0000','#880000','#cc2200','#ff5500','#ff9900'],
+    'Aqua Flash': ['#003333','#006666','#009999','#00cccc','#00ffff'],
+    'Yelblu':     ['#003399','#0066cc','#0099ff','#33ccff','#ffff00'],
+    'Lite Light': ['#440000','#884400','#cc8800','#ffcc44','#ffffff'],
+    'Sherbet':    ['#ff6b35','#ff9f45','#ffcf77','#ffe5a0','#fff8e1'],
+    'Hult':       ['#080840','#101090','#4040d0','#8080ff','#c0c0ff'],
+    'Hult 64':    ['#001a40','#003380','#0055cc','#3388ff','#99ccff'],
+    'Drywet':     ['#003300','#006600','#339900','#99cc00','#ccff00'],
+    'Jul':        ['#cc0000','#006600','#cc6600','#006633','#cc3300'],
+    'Grintage':   ['#1a1a00','#334400','#668800','#99aa44','#cccc88'],
+    'Rewhi':      ['#ffffff','#ffeecc','#ffcc88','#ff9944','#ff5500'],
+    'Tertly':     ['#001133','#003366','#006699','#0099cc','#33ccff'],
+    'Sandy':      ['#cc8800','#ddaa44','#eebb66','#ffcc88','#ffeebb'],
+    'Halloween':  ['#330000','#660000','#cc3300','#ff6600','#ffcc00'],
+    'Candy':      ['#ff0055','#ff44aa','#ff88dd','#ffbbff','#ffffff'],
+    'Tiamat':     ['#000033','#0000aa','#4400bb','#8800cc','#cc00dd'],
+    'April Night':['#001144','#112266','#2244aa','#4466cc','#66aaee'],
+    'Orangery':   ['#331100','#772200','#bb4400','#ee7700','#ffaa00'],
+    'C9':         ['#cc0000','#006600','#cc8800','#0000cc','#cc0000'],
+  };
+
+  // Generate colors for unknown palettes using index-based hue
+  if (!NAMED[name]) {
+    const hue = (idx * 47) % 360;
+    const h2 = (hue + 60) % 360;
+    const h3 = (hue + 120) % 360;
+    return `linear-gradient(90deg, hsl(${hue},80%,25%), hsl(${h2},90%,50%), hsl(${h3},80%,70%))`;
+  }
+
+  return 'linear-gradient(90deg,' + NAMED[name].join(',') + ')';
+}
+
+function renderPal() {
+  const list = document.getElementById('palList');
+  if (!S.palettes.length) return;
+  const f = _palF.toLowerCase();
+  const items = S.palettes.map((n,i) => ({n,i})).filter(p => !f || p.n.toLowerCase().includes(f));
+  list.innerHTML = items.map(({n,i}) => `
+    <div class="pitem${S.pal===i?' active':''}" onclick="setPal(${i})" title="${n}">
+      <div class="pprev" style="background:${palGrad(n,i)}"></div>
+    </div>`).join('');
+}
+
+function renderDevs() {
+  const list = document.getElementById('devList');
+  if (!S.devices.length) {
+    list.innerHTML = '<div class="empty"><div class="ei"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--mu)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6M12 3a6 6 0 0 1 6 6c0 2.2-1.2 4.1-3 5.2V18H9v-3.8A6 6 0 0 1 6 9a6 6 0 0 1 6-6z"/></svg></div><h3>No Devices Yet</h3><p>Enter your WLED IP above or tap Scan</p></div>';
+    return;
+  }
+  list.innerHTML = S.devices.map(d => {
+    const isConnecting = d.ip === S.connectingIp;
+    const isActive = d.ip === S.activeIp;
+    const dotClass = isConnecting ? 'connecting' : (d.online ? 'on' : 'off');
+    const connLabel = isConnecting
+      ? '<div class="dcard-conn">⟳ connecting…</div>'
+      : (isActive && d.online ? '<div class="dcard-conn" style="color:var(--ok)">● connected</div>' : '');
+    return `
+    <div class="dcard${isActive?' sel':''}${d.online?' onl':''}">
+      <div class="ddot ${dotClass}"></div>
+      <div class="dcinfo" onclick="selDev('${d.ip}')">
+        <div class="dcname">${d.name}</div>
+        <div class="dcip">${d.ip}</div>
+        <div class="dcleds">${d.leds||'?'} LEDs${d.fps?' · '+d.fps+' FPS':''}</div>
+        ${connLabel}
+      </div>
+      <div class="dcbtns">
+        <button class="mbtn" onclick="event.stopPropagation();loadAll('${d.ip}')">↻</button>
+        <button class="mbtn" onclick="event.stopPropagation();remDev('${d.ip}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDevInfo(dev, info) {
+  if (!info) return;
+  document.getElementById('infoBox').innerHTML = [
+    ['Name', info.name||'-'], ['Version', info.ver||'-'],
+    ['LEDs', info.leds?.count||'-'], ['FPS', info.leds?.fps||'-'],
+    ['Platform', info.arch||'-'], ['Free RAM', info.freeheap ? Math.round(info.freeheap/1024)+'KB' : '-'],
+    ['IP', info.ip||dev?.ip||'-'], ['Uptime', info.uptime ? Math.floor(info.uptime/3600)+'h '+Math.floor(info.uptime%3600/60)+'m' : '-'],
+  ].map(([k,v]) => `<div class="inforow"><span>${k}</span><span>${v}</span></div>`).join('');
+}
+
+// ─── COLOR WHEEL ─────────────────────────────────────
+let _wctx, _wr;
+function initWheel() {
+  const c = document.getElementById('colorCanvas');
+  const card = c.closest('.card');
+  const cardW = card ? card.clientWidth - 32 : window.innerWidth - 60;
+  const sz = Math.min(cardW, 300);
+  c.width = c.height = sz; _wr = sz / 2; _wctx = c.getContext('2d');
+  drawWheel();
+  c.addEventListener('touchstart', onWT, { passive: false });
+  c.addEventListener('touchmove',  onWT, { passive: false });
+  c.addEventListener('mousedown',  onWM);
+  c.addEventListener('mousemove',  e => { if (e.buttons) onWM(e); });
+}
+
+function drawWheel() {
+  if (!_wctx) return;
+  const sz = _wr * 2;
+  const id = _wctx.createImageData(sz, sz);
+  for (let y = 0; y < sz; y++) for (let x = 0; x < sz; x++) {
+    const dx = x - _wr, dy = y - _wr, d = Math.sqrt(dx*dx+dy*dy);
+    if (d <= _wr) {
+      const hh = (Math.atan2(dy, dx) + Math.PI*2) % (Math.PI*2) / (Math.PI*2);
+      const [r,g,b] = hsl2rgb(hh, d/_wr, 0.5);
+      const i = (y*sz+x)*4; id.data[i]=r; id.data[i+1]=g; id.data[i+2]=b; id.data[i+3]=255;
+    }
+  }
+  _wctx.putImageData(id, 0, 0);
+  const col = S.colors[S.swatch];
+  const hsl_ = rgb2hsl(col[0], col[1], col[2]);
+  const ang = hsl_.h * Math.PI * 2;
+  const rad = hsl_.s * (_wr - 4);
+  const sx = _wr + Math.cos(ang)*rad, sy = _wr + Math.sin(ang)*rad;
+  _wctx.beginPath(); _wctx.arc(sx, sy, 9, 0, Math.PI*2);
+  _wctx.strokeStyle = 'white'; _wctx.lineWidth = 2.5; _wctx.stroke();
+  _wctx.beginPath(); _wctx.arc(sx, sy, 6, 0, Math.PI*2);
+  _wctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; _wctx.fill();
+}
+
+// Throttle wheel → network sends to at most once per 150 ms.
+// Visual feedback (swatch + cursor) is still instant on every event.
+var _wheelSendTimer = null;
+var _wheelPendingSend = false;
+var WHEEL_THROTTLE_MS = 50;
+
+function pickXY(x, y) {
+  const dx = x-_wr, dy = y-_wr, d = Math.sqrt(dx*dx+dy*dy);
+  if (d > _wr) return;
+  const hh = (Math.atan2(dy, dx)+Math.PI*2)%(Math.PI*2)/(Math.PI*2);
+  const [r,g,b] = hsl2rgb(hh, Math.min(d/_wr,1), 0.5);
+  S.colors[S.swatch][0]=r; S.colors[S.swatch][1]=g; S.colors[S.swatch][2]=b;
+  _tempBase = null;
+  // Always update visuals immediately
+  updateSwatches(); drawWheel();
+  // Throttle the actual network send
+  if (!_wheelSendTimer) {
+    sendColorSolid();
+    _wheelSendTimer = setTimeout(function() {
+      _wheelSendTimer = null;
+      if (_wheelPendingSend) { _wheelPendingSend = false; sendColorSolid(); }
+    }, WHEEL_THROTTLE_MS);
+  } else {
+    _wheelPendingSend = true;
+  }
+}
+
+function onWT(e) { e.preventDefault(); const t=e.touches[0], r=e.target.getBoundingClientRect(); pickXY(t.clientX-r.left, t.clientY-r.top); }
+function onWM(e) { const r=e.target.getBoundingClientRect(); pickXY(e.clientX-r.left, e.clientY-r.top); }
+
+function updateSwatches() {
+  S.colors.forEach((c,i) => {
+    const el = document.getElementById('sw'+i);
+    el.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
+    el.style.color = (c[0]*299+c[1]*587+c[2]*114)/1000 > 128 ? 'rgba(0,0,0,.7)' : 'rgba(255,255,255,.8)';
+  });
+  const c = S.colors[S.swatch];
+  document.getElementById('hexLabel').textContent = '#'+[c[0],c[1],c[2]].map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+
+function hsl2rgb(h,s,l) {
+  let r,g,b;
+  if (!s) { r=g=b=l; } else {
+    const q=l<.5?l*(1+s):l+s-l*s, p=2*l-q;
+    r=h2r(p,q,h+1/3); g=h2r(p,q,h); b=h2r(p,q,h-1/3);
+  }
+  return [Math.round(r*255),Math.round(g*255),Math.round(b*255)];
+}
+function h2r(p,q,t){if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<.5)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;}
+function rgb2hsl(r,g,b) {
+  r/=255;g/=255;b/=255;
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b); let h,s,l=(mx+mn)/2;
+  if (mx===mn) { h=s=0; } else {
+    const d=mx-mn; s=l>.5?d/(2-mx-mn):d/(mx+mn);
+    switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;default:h=(r-g)/d+4;}h/=6;
+  }
+  return {h,s,l};
+}
+
+// ─── TABS ────────────────────────────────────────────
+function goTab(tab) {
+  document.querySelectorAll('.nb').forEach(b => b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+tab));
+  if (tab === 'advanced' && S.activeIp) {
+    loadInfoAdv();
+    loadPresetsAdv();
+    renderSegments();
+  }
+  if (tab === 'presets' && S.activeIp) {
+    loadPresetsAdv();
+  }
+  if (tab === 'config' && S.activeIp) {
+    loadInfoAdv();
+  }
+  if (tab === 'sound') {
+    srSyncDevice();
+  }
+  if (tab === 'ledmap') {
+    if (typeof lmSyncDevice === 'function') lmSyncDevice();
+    // Resize canvas after panel becomes visible
+    setTimeout(function() {
+      if (typeof lmResize === 'function') lmResize();
+    }, 50);
+  }
+}
+
+// ─── WLED SETTINGS OVERLAY ───────────────────────────
+var _wledSettingsUrl = '';
+function openWledSettings() {
+  if (!S.activeIp) { toast('No device selected'); return; }
+  _wledSettingsUrl = 'http://' + S.activeIp + '/settings';
+  const overlay = document.getElementById('wledSettingsOverlay');
+  const frame   = document.getElementById('wledSettingsFrame');
+  const urlEl   = document.getElementById('wledSettingsUrl');
+  const loader  = document.getElementById('wledSettingsLoader');
+  urlEl.textContent = _wledSettingsUrl;
+  loader.style.display = 'flex';
+  frame.style.opacity = '0';
+  frame.src = _wledSettingsUrl;
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeWledSettings() {
+  const overlay = document.getElementById('wledSettingsOverlay');
+  const frame   = document.getElementById('wledSettingsFrame');
+  overlay.style.display = 'none';
+  frame.src = 'about:blank';
+  _wledSettingsUrl = '';
+  document.body.style.overflow = '';
+}
+function reloadWledSettings() {
+  if (!_wledSettingsUrl) return;
+  const frame  = document.getElementById('wledSettingsFrame');
+  const loader = document.getElementById('wledSettingsLoader');
+  loader.style.display = 'flex';
+  frame.style.opacity = '0';
+  frame.src = 'about:blank';
+  setTimeout(function() { frame.src = _wledSettingsUrl; }, 50);
+}
+function wledFrameLoaded() {
+  const frame  = document.getElementById('wledSettingsFrame');
+  const loader = document.getElementById('wledSettingsLoader');
+  if (!frame.src || frame.src === 'about:blank') return;
+  loader.style.display = 'none';
+  frame.style.opacity = '1';
+}
+
+// ─── TOAST ───────────────────────────────────────────
+let _tt;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ─── AUTO SCAN (silent, runs on first launch) ────────
+function autoScan() {
+  if (S.scanning) return;
+  const WledDiscovery = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.WledDiscovery;
+  if (!WledDiscovery) return;
+  S.scanning = true;
+  const SCAN_MS = 6000;
+
+  function addFoundDevice(ip, info) {
+    if (S.devices.find(d => d.ip === ip)) return false;
+    const dev = { ip, name: info.name || ('WLED @ ' + ip), leds: info.leds?.count || 0, online: true, info, fps: info.leds?.fps || 0 };
+    S.devices.push(dev); saveDev(); renderDevs(); updBadge();
+    if (!S.activeIp) { selDev(ip); toast('✅ Found ' + dev.name); }
+    return true;
+  }
+
+  const listenerP = WledDiscovery.addListener('deviceFound', result => {
+    try {
+      const ip = result && result.ip; if (!ip) return;
+      let info = {}; try { info = JSON.parse(result.info || '{}'); } catch(e) {}
+      addFoundDevice(ip, info);
+    } catch(e) {}
+  });
+
+  WledDiscovery.startScan().catch(() => {});
+
+  setTimeout(() => {
+    S.scanning = false;
+    WledDiscovery.stopScan().catch(() => {});
+    listenerP.then(l => { try { if (l && l.remove) l.remove(); } catch(e) {} });
+    // Sync scan button state if user is on devices tab
+    const btn = document.getElementById('scanBtn');
+    const text = document.getElementById('scanText');
+    if (btn) { btn.disabled = false; btn.classList.remove('scanning'); }
+    if (text) text.textContent = S.devices.length ? 'Scan Again' : 'Scan Network';
+  }, SCAN_MS);
+}
+
+// ─── INIT ────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.nb').forEach(btn => {
+    btn.addEventListener('click', () => goTab(btn.dataset.tab));
+  });
+  document.getElementById('devBar').addEventListener('click', () => goTab('devices'));
+  initWheel();
+  updateSwatches();
+
+  let hasSaved = false;
+  try { hasSaved = !!localStorage.getItem('wled_dev'); } catch(e) {}
+  if (!hasSaved) goTab('devices');
+
+  loadDev(); updBadge(); updateBar();
+
+  // Auto-scan on first launch if no device connected yet
+  if (!S.activeIp) autoScan();
+
+  // Init config accordion visibility
+  const opts2d = document.getElementById('cfg2dOptions');
+  if (opts2d) opts2d.style.display = 'none';
+  const mqttOpts = document.getElementById('cfgMQTTOptions');
+  if (mqttOpts) mqttOpts.style.display = 'none';
+});
+
+// ─── SOUND REACTIVE ──────────────────────────────────
+let srActiveFx    = 'geq';
+let srColorMode   = 'single';
+let srSingleColor = [255, 0, 0];
+let srComboColors = [];
+let srGradStart   = [255, 0, 0];
+let srGradEnd     = [0, 0, 255];
+let srSlotTarget  = -1;
+let srIsRunning   = false;
+
+function srPickFx(btn) {
+  document.querySelectorAll('.sr-fx').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  srActiveFx = btn.dataset.fx;
+  if (srIsRunning) srPushUpdate();
+}
+
+function srPickMode(tab) {
+  document.querySelectorAll('.sr-ctab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  srColorMode = tab.dataset.cm;
+  document.querySelectorAll('.sr-panel').forEach(p => p.classList.remove('active'));
+  const map = {single:'srPSingle',combo:'srPCombo',gradient:'srPGradient',rainbow:'srPRainbow'};
+  document.getElementById(map[srColorMode]).classList.add('active');
+  if (srIsRunning) srPushUpdate();
+}
+
+function srPickSingle(el) {
+  document.querySelectorAll('#srSwSingle .sr-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  srSingleColor = el.dataset.c.split(',').map(Number);
+  if (srIsRunning) srPushUpdate();
+}
+function srPickCustom(inp) {
+  document.getElementById('srCustPrev').style.background = inp.value;
+  srSingleColor = srHexRgb(inp.value);
+  document.querySelectorAll('#srSwSingle .sr-swatch').forEach(s => s.classList.remove('active'));
+  if (srIsRunning) srPushUpdate();
+}
+
+function srAddToSlot(idx) { srSlotTarget = idx; document.getElementById('srComboPicker').click(); }
+function srOnComboPick(inp) {
+  if (srSlotTarget < 0) return;
+  srComboColors[srSlotTarget] = srHexRgb(inp.value);
+  srRenderSlots(); if (srIsRunning) srPushUpdate();
+}
+function srDelSlot(e, idx) {
+  e.stopPropagation(); srComboColors.splice(idx, 1);
+  srRenderSlots(); if (srIsRunning) srPushUpdate();
+}
+function srQuickAdd(el) {
+  if (srComboColors.length >= 4) return;
+  srComboColors.push(el.dataset.c.split(',').map(Number));
+  srRenderSlots(); if (srIsRunning) srPushUpdate();
+}
+function srSetCombo(arr) {
+  srComboColors = arr.map(c => [...c]); srRenderSlots(); if (srIsRunning) srPushUpdate();
+}
+function srRenderSlots() {
+  for (let i = 0; i < 4; i++) {
+    const sl = document.getElementById('srCs'+i);
+    const c  = srComboColors[i];
+    if (c) {
+      sl.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
+      sl.classList.add('filled');
+      sl.querySelector('span').style.display = 'none';
+    } else {
+      sl.style.background = ''; sl.classList.remove('filled');
+      sl.querySelector('span').style.display = '';
+    }
+  }
+}
+
+function srUpdateGrad() {
+  const s = document.getElementById('srGStart').value;
+  const e = document.getElementById('srGEnd').value;
+  srGradStart = srHexRgb(s); srGradEnd = srHexRgb(e);
+  document.getElementById('srGradBar').style.background = `linear-gradient(90deg,${s},${e})`;
+  if (srIsRunning) srPushUpdate();
+}
+function srSetGrad(s, e) {
+  document.getElementById('srGStart').value = s;
+  document.getElementById('srGEnd').value   = e;
+  srUpdateGrad();
+}
+
+function srColorPayload() {
+  const base = { colorMode: srColorMode };
+  if (srColorMode === 'single')
+    return { ...base, colorR:srSingleColor[0], colorG:srSingleColor[1], colorB:srSingleColor[2] };
+  if (srColorMode === 'combo')
+    return { ...base, comboColors: JSON.stringify(srComboColors.length ? srComboColors : [[255,0,0]]) };
+  if (srColorMode === 'gradient')
+    return { ...base, gradR1:srGradStart[0],gradG1:srGradStart[1],gradB1:srGradStart[2],
+                       gradR2:srGradEnd[0],  gradG2:srGradEnd[1],  gradB2:srGradEnd[2] };
+  return base;
+}
+
+async function srGetPlugin() {
+  if (window.Capacitor?.Plugins?.SoundReactive) return window.Capacitor.Plugins.SoundReactive;
+  throw new Error('SoundReactive plugin not available');
+}
+
+async function srGo() {
+  const wledIp = document.getElementById('srWledIp').value.trim();
+  const ledCount = parseInt(document.getElementById('srLedCount').value, 10);
+  if (!wledIp) { srAddLog('⚠ Enter WLED IP'); return; }
+  try {
+    const p = await srGetPlugin();
+    const r = await p.start({
+      wledIp, ledCount,
+      useSystemAudio: document.getElementById('srUseSystemAudio').checked,
+      sensitivity:    parseInt(document.getElementById('srSensitivity').value, 10),
+      noiseFloor:     parseInt(document.getElementById('srNoiseFloor').value, 10),
+      brightness:     parseInt(document.getElementById('srBrightness').value, 10),
+      minLight:       parseFloat(document.getElementById('srMinLight').value),
+      effect: srActiveFx, ...srColorPayload()
+    });
+    srAddLog(`✅ ${r.wledIp} · ${srActiveFx} · ${srColorMode}`);
+    srSetRun(true);
+  } catch(e) { srAddLog(`❌ ${e.message||e}`); srSetStatus('error', e.message||'Error'); }
+}
+
+async function srHalt() {
+  try { const p = await srGetPlugin(); await p.stop(); srAddLog('⏹ Stopped'); } catch(e) {}
+  srSetRun(false);
+}
+
+async function srPushUpdate() {
+  try {
+    const p = await srGetPlugin();
+    await p.setEffect({
+      wledIp:         document.getElementById('srWledIp').value.trim(),
+      ledCount:       parseInt(document.getElementById('srLedCount').value, 10),
+      sensitivity:    parseInt(document.getElementById('srSensitivity').value, 10),
+      noiseFloor:     parseInt(document.getElementById('srNoiseFloor').value, 10),
+      brightness:     parseInt(document.getElementById('srBrightness').value, 10),
+      minLight:       parseFloat(document.getElementById('srMinLight').value),
+      useSystemAudio: document.getElementById('srUseSystemAudio').checked,
+      effect: srActiveFx, ...srColorPayload()
+    });
+  } catch(e) { srAddLog('update: ' + (e.message||e)); }
+}
+
+function srSetRun(v) {
+  srIsRunning = v;
+  document.getElementById('srStartBtn').style.display = v ? 'none'  : 'block';
+  document.getElementById('srStopBtn').style.display  = v ? 'block' : 'none';
+  srSetStatus(v ? 'active' : '', v ? `Running · ${srActiveFx}` : 'Idle');
+}
+function srSetStatus(cls, txt) {
+  document.getElementById('srPill').className = 'sr-pill ' + cls;
+  document.getElementById('srPillTxt').textContent = txt;
+}
+function srAddLog(msg) {
+  // log element removed; errors surfaced via status pill only
+}
+function srHexRgb(hex) {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LEDMAP
+// ══════════════════════════════════════════════════════════════
+(function() {
+  const LC = ['#00f0ff','#ff6b35','#bf5fff','#f59e0b','#00e676','#ff3d7f','#3b82f6','#84cc16'];
+  let lmLines = [], lmSelectedId = null, lmTool = 'draw';
+  let lmDrawing = false, lmDrawStart = null;
+  let lmDragging = null, lmDidDrag = false;
+  let lmNextId = 1, lmDpr = 1;
+  let lmSheetLineId = null;
+  let lmCanvas, lmCtx, lmWrap;
+
+  function lmInit() {
+    lmCanvas = document.getElementById('lmCanvas');
+    lmCtx    = lmCanvas.getContext('2d');
+    lmWrap   = document.getElementById('lmCanvasWrap');
+    window.addEventListener('resize', lmResize);
+    lmCanvas.addEventListener('pointerdown', lmOnDown);
+    lmCanvas.addEventListener('pointermove', lmOnMove);
+    lmCanvas.addEventListener('pointerup',   lmOnUp);
+    lmCanvas.addEventListener('pointercancel', lmOnUp);
+    document.getElementById('lmSheetStart').addEventListener('input', lmUpdateLedHint);
+    document.getElementById('lmSheetEnd').addEventListener('input', lmUpdateLedHint);
+    document.getElementById('lmLedSheet').addEventListener('click', function(e){ if(e.target===this) lmCloseSheet(); });
+    document.querySelectorAll('.modal-overlay').forEach(function(o){ o.addEventListener('click', function(e){ if(e.target===o) o.classList.remove('open'); }); });
+    lmResize();
+    lmLoadLayout();
+    lmRenderLineList();
+  }
+
+  // ── Local layout persistence (keyed by device IP) ──
+  function lmStorageKey() { return 'lmLayout_' + (S.activeIp || 'default'); }
+
+  function lmSaveLayout() {
+    try {
+      var data = { lines: lmLines, nextId: lmNextId };
+      localStorage.setItem(lmStorageKey(), JSON.stringify(data));
+    } catch(e) {}
+  }
+
+  function lmLoadLayout() {
+    try {
+      var raw = localStorage.getItem(lmStorageKey());
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (data && Array.isArray(data.lines)) {
+        lmLines  = data.lines;
+        lmNextId = data.nextId || (lmLines.length ? Math.max.apply(null, lmLines.map(function(l){ return l.id; })) + 1 : 1);
+      }
+    } catch(e) {}
+  }
+
+  function lmDeleteLayout() {
+    try { localStorage.removeItem(lmStorageKey()); } catch(e) {}
+  }
+
+  function lmResize() {
+    if (!lmCanvas || !lmWrap) return;
+    lmDpr = window.devicePixelRatio || 1;
+    const r = lmWrap.getBoundingClientRect();
+    lmCanvas.width  = r.width  * lmDpr;
+    lmCanvas.height = r.height * lmDpr;
+    lmCanvas.style.width  = r.width  + 'px';
+    lmCanvas.style.height = r.height + 'px';
+    lmRender();
+  }
+  window.lmResize = lmResize;
+
+  window.lmSetTool = function(t) {
+    lmTool = t;
+    document.getElementById('lmBtnDraw').classList.toggle('active', t==='draw');
+    document.getElementById('lmBtnSelect').classList.toggle('active', t==='select');
+    if (t==='draw') lmSelectedId = null;
+    lmRender();
+  };
+
+  const lmDist = (x1,y1,x2,y2) => Math.sqrt((x2-x1)**2+(y2-y1)**2);
+  const lmHitHandle = (lx,ly,px,py) => lmDist(lx,ly,px,py) < 20*lmDpr;
+  function lmHitLine(l,px,py) {
+    const {x1,y1,x2,y2}=l, len2=(x2-x1)**2+(y2-y1)**2;
+    if (!len2) return lmDist(x1,y1,px,py)<12*lmDpr;
+    const t=Math.max(0,Math.min(1,((px-x1)*(x2-x1)+(py-y1)*(y2-y1))/len2));
+    return lmDist(x1+t*(x2-x1),y1+t*(y2-y1),px,py)<14*lmDpr;
+  }
+
+  function lmRender() {
+    if (!lmCanvas || !lmCtx) return;
+    const w=lmCanvas.width, h=lmCanvas.height;
+    lmCtx.clearRect(0,0,w,h);
+    lmCtx.strokeStyle='rgba(0,240,255,0.04)'; lmCtx.lineWidth=1;
+    const gs=28*lmDpr;
+    for(let x=0;x<w;x+=gs){lmCtx.beginPath();lmCtx.moveTo(x,0);lmCtx.lineTo(x,h);lmCtx.stroke();}
+    for(let y=0;y<h;y+=gs){lmCtx.beginPath();lmCtx.moveTo(0,y);lmCtx.lineTo(w,y);lmCtx.stroke();}
+    lmLines.forEach(l => lmDrawLine(l, l.id===lmSelectedId));
+    if (lmDrawing && lmDrawStart) {
+      lmCtx.strokeStyle='rgba(255,255,255,0.25)'; lmCtx.lineWidth=2*lmDpr;
+      lmCtx.setLineDash([7*lmDpr,5*lmDpr]); lmCtx.lineCap='round';
+      lmCtx.beginPath(); lmCtx.moveTo(lmDrawStart[0],lmDrawStart[1]); lmCtx.lineTo(lmDrawStart[2],lmDrawStart[3]); lmCtx.stroke();
+      lmCtx.setLineDash([]);
+      lmCtx.fillStyle='rgba(255,255,255,0.35)';
+      lmCtx.beginPath(); lmCtx.arc(lmDrawStart[0],lmDrawStart[1],6*lmDpr,0,Math.PI*2); lmCtx.fill();
+      lmCtx.fillStyle='rgba(255,255,255,0.65)';
+      lmCtx.beginPath(); lmCtx.arc(lmDrawStart[2],lmDrawStart[3],6*lmDpr,0,Math.PI*2); lmCtx.fill();
+    }
+    const hint = document.getElementById('lmEmptyHint');
+    if (hint) hint.style.display = lmLines.length===0&&!lmDrawing?'flex':'none';
+  }
+
+  function lmRrect(x,y,w,h,r){ lmCtx.beginPath(); lmCtx.moveTo(x+r,y); lmCtx.lineTo(x+w-r,y); lmCtx.arcTo(x+w,y,x+w,y+r,r); lmCtx.lineTo(x+w,y+h-r); lmCtx.arcTo(x+w,y+h,x+w-r,y+h,r); lmCtx.lineTo(x+r,y+h); lmCtx.arcTo(x,y+h,x,y+h-r,r); lmCtx.lineTo(x,y+r); lmCtx.arcTo(x,y,x+r,y,r); lmCtx.closePath(); lmCtx.fill(); }
+
+  function lmDrawLine(line, sel) {
+    const {x1,y1,x2,y2,color}=line;
+    lmCtx.shadowColor=color; lmCtx.shadowBlur=sel?14*lmDpr:5*lmDpr;
+    lmCtx.strokeStyle=color; lmCtx.lineWidth=(sel?3:2.5)*lmDpr; lmCtx.lineCap='round'; lmCtx.setLineDash([]);
+    lmCtx.beginPath(); lmCtx.moveTo(x1,y1); lmCtx.lineTo(x2,y2); lmCtx.stroke();
+    lmCtx.shadowBlur=0;
+    const mx=(x1+x2)/2, my=(y1+y2)/2, ang=Math.atan2(y2-y1,x2-x1), as=9*lmDpr;
+    lmCtx.save(); lmCtx.translate(mx,my); lmCtx.rotate(ang);
+    lmCtx.fillStyle=color; lmCtx.globalAlpha=0.8;
+    lmCtx.beginPath(); lmCtx.moveTo(as,0); lmCtx.lineTo(-as,-as*.5); lmCtx.lineTo(-as,as*.5); lmCtx.closePath(); lmCtx.fill();
+    lmCtx.globalAlpha=1; lmCtx.restore();
+    const r1=(sel?10:8)*lmDpr;
+    lmCtx.fillStyle='#0a0a14'; lmCtx.strokeStyle=color; lmCtx.lineWidth=2.5*lmDpr;
+    lmCtx.beginPath(); lmCtx.arc(x1,y1,r1,0,Math.PI*2); lmCtx.fill(); lmCtx.stroke();
+    lmCtx.font=`bold ${8*lmDpr}px 'Rajdhani',sans-serif`; lmCtx.fillStyle=color; lmCtx.textAlign='center'; lmCtx.textBaseline='middle';
+    lmCtx.fillText('S',x1,y1);
+    const r2=(sel?10:8)*lmDpr;
+    lmCtx.shadowColor=color; lmCtx.shadowBlur=sel?10*lmDpr:4*lmDpr;
+    lmCtx.fillStyle=color; lmCtx.beginPath(); lmCtx.arc(x2,y2,r2,0,Math.PI*2); lmCtx.fill();
+    lmCtx.shadowBlur=0;
+    lmCtx.font=`bold ${8*lmDpr}px 'Rajdhani',sans-serif`; lmCtx.fillStyle='#000'; lmCtx.textAlign='center'; lmCtx.textBaseline='middle';
+    lmCtx.fillText('E',x2,y2);
+    const hasR = line.ledStart!==null && line.ledEnd!==null;
+    const rl = hasR?`${line.ledStart}→${line.ledEnd}`:'tap to set';
+    lmCtx.font=`${10*lmDpr}px 'Rajdhani',sans-serif`; lmCtx.textAlign='center'; lmCtx.textBaseline='bottom';
+    const tw=lmCtx.measureText(rl).width+12*lmDpr, ty=my-10*lmDpr;
+    lmCtx.fillStyle='rgba(7,7,16,0.82)'; lmRrect(mx-tw/2, ty-14*lmDpr, tw, 14*lmDpr, 3*lmDpr);
+    lmCtx.fillStyle=hasR?color:'rgba(90,90,120,0.7)'; lmCtx.fillText(rl,mx,ty);
+    const idl=`#${line.id}`; lmCtx.font=`${9*lmDpr}px 'Rajdhani',sans-serif`; lmCtx.textAlign='center'; lmCtx.textBaseline='top';
+    const iw=lmCtx.measureText(idl).width+8*lmDpr, iy=y1+r1+3*lmDpr;
+    lmCtx.fillStyle='rgba(7,7,16,0.75)'; lmRrect(x1-iw/2, iy, iw, 12*lmDpr, 3*lmDpr);
+    lmCtx.fillStyle=sel?color:'rgba(90,90,120,0.8)'; lmCtx.fillText(idl,x1,iy+1.5*lmDpr);
+  }
+
+  function lmGetPos(e) {
+    const r=lmCanvas.getBoundingClientRect(), s=e.touches?e.touches[0]:e;
+    return [(s.clientX-r.left)*lmDpr,(s.clientY-r.top)*lmDpr];
+  }
+
+  function lmOnDown(e) {
+    e.preventDefault(); lmCanvas.setPointerCapture(e.pointerId);
+    const [px,py]=lmGetPos(e); lmDidDrag=false;
+    if (lmTool==='draw') {
+      for (let i=lmLines.length-1;i>=0;i--) {
+        const l=lmLines[i];
+        if (lmHitHandle(l.x1,l.y1,px,py)||lmHitHandle(l.x2,l.y2,px,py)||lmHitLine(l,px,py)){
+          lmDragging={id:l.id,handle:'body',ox:px,oy:py,lx1:l.x1,ly1:l.y1,lx2:l.x2,ly2:l.y2}; return;
+        }
+      }
+      lmDrawing=true; lmDrawStart=[px,py,px,py]; return;
+    }
+    if (lmTool==='select') {
+      if (lmSelectedId!==null) {
+        const sl=lmLines.find(l=>l.id===lmSelectedId);
+        if (sl) {
+          if (lmHitHandle(sl.x1,sl.y1,px,py)){lmDragging={id:sl.id,handle:'p1',ox:px-sl.x1,oy:py-sl.y1};return;}
+          if (lmHitHandle(sl.x2,sl.y2,px,py)){lmDragging={id:sl.id,handle:'p2',ox:px-sl.x2,oy:py-sl.y2};return;}
+          if (lmHitLine(sl,px,py)){lmDragging={id:sl.id,handle:'body',ox:px,oy:py,lx1:sl.x1,ly1:sl.y1,lx2:sl.x2,ly2:sl.y2};return;}
+        }
+      }
+      for (let i=lmLines.length-1;i>=0;i--) {
+        const l=lmLines[i];
+        if (lmHitHandle(l.x1,l.y1,px,py)||lmHitHandle(l.x2,l.y2,px,py)||lmHitLine(l,px,py)){
+          lmSelectedId=l.id; lmDragging={id:l.id,handle:'body',ox:px,oy:py,lx1:l.x1,ly1:l.y1,lx2:l.x2,ly2:l.y2};
+          lmRenderLineList(); lmRender(); return;
+        }
+      }
+      lmSelectedId=null; lmRender(); lmRenderLineList();
+    }
+  }
+
+  function lmOnMove(e) {
+    if (!lmDrawing&&!lmDragging) return;
+    const [px,py]=lmGetPos(e); lmDidDrag=true;
+    if (lmTool==='draw' && lmDragging && !lmDrawing) {
+      const ox=lmDragging.ox, oy=lmDragging.oy;
+      lmDragging=null; lmDrawing=true; lmDrawStart=[ox,oy,px,py]; lmRender(); return;
+    }
+    if (lmDrawing){lmDrawStart[2]=px;lmDrawStart[3]=py;lmRender();return;}
+    if (lmDragging){
+      const l=lmLines.find(l=>l.id===lmDragging.id); if(!l) return;
+      if(lmDragging.handle==='p1'){l.x1=px-lmDragging.ox;l.y1=py-lmDragging.oy;}
+      else if(lmDragging.handle==='p2'){l.x2=px-lmDragging.ox;l.y2=py-lmDragging.oy;}
+      else{const dx=px-lmDragging.ox,dy=py-lmDragging.oy;l.x1=lmDragging.lx1+dx;l.y1=lmDragging.ly1+dy;l.x2=lmDragging.lx2+dx;l.y2=lmDragging.ly2+dy;}
+      lmRender();
+    }
+  }
+
+  function lmOnUp(e) {
+    if (lmDrawing && lmDrawStart) {
+      const [x1,y1,x2,y2]=lmDrawStart;
+      if (lmDist(x1,y1,x2,y2)>15*lmDpr) {
+        const color=LC[(lmNextId-1)%LC.length];
+        const nl={id:lmNextId,x1,y1,x2,y2,ledStart:null,ledEnd:null,label:`Line ${lmNextId}`,color};
+        lmLines.push(nl); lmSelectedId=lmNextId; lmNextId++;
+        lmRenderLineList(); lmRender();
+        lmOpenSheet(nl.id);
+      }
+      lmDrawing=false; lmDrawStart=null; lmRender();
+    }
+    if (lmDragging && !lmDidDrag) {
+      const l=lmLines.find(l=>l.id===lmDragging.id);
+      if (l) { lmSelectedId=l.id; lmRenderLineList(); lmRender(); lmOpenSheet(l.id); }
+    }
+    lmDragging=null; lmDidDrag=false;
+  }
+
+  window.lmOpenSheet = function(id) {
+    const l=lmLines.find(l=>l.id===id); if(!l) return;
+    lmSheetLineId=id;
+    document.getElementById('lmSheetColorBar').style.background=l.color;
+    document.getElementById('lmSheetTitle').textContent=l.label||`Line ${l.id}`;
+    document.getElementById('lmSheetIdBadge').textContent=`#${l.id}`;
+    document.getElementById('lmSheetLabel').value=l.label;
+    document.getElementById('lmSheetStart').value=l.ledStart??'';
+    document.getElementById('lmSheetEnd').value=l.ledEnd??'';
+    lmUpdateLedHint();
+    document.getElementById('lmLedSheet').classList.add('open');
+    setTimeout(()=>document.getElementById('lmSheetStart').focus(),300);
+  };
+
+  window.lmCloseSheet = function() {
+    document.getElementById('lmLedSheet').classList.remove('open');
+    lmSheetLineId=null;
+  };
+
+  window.lmConfirmSheet = function() {
+    if (lmSheetLineId===null) return;
+    const l=lmLines.find(l=>l.id===lmSheetLineId); if(!l) return;
+    const label=document.getElementById('lmSheetLabel').value.trim();
+    const sv=document.getElementById('lmSheetStart').value;
+    const ev=document.getElementById('lmSheetEnd').value;
+    l.label   =label||`Line ${l.id}`;
+    l.ledStart=sv!==''?parseInt(sv):null;
+    l.ledEnd  =ev!==''?parseInt(ev):null;
+    if(isNaN(l.ledStart)) l.ledStart=null;
+    if(isNaN(l.ledEnd))   l.ledEnd=null;
+    lmRenderLineList(); lmRender(); lmCloseSheet(); lmUpdateLedBar();
+    const ok=l.ledStart!==null&&l.ledEnd!==null;
+    toast(ok?`Line #${l.id}: ${l.ledStart}→${l.ledEnd} ✓`:`Line #${l.id} saved`);
+  };
+
+  function lmUpdateLedHint() {
+    const s=document.getElementById('lmSheetStart').value, e=document.getElementById('lmSheetEnd').value;
+    const hint=document.getElementById('lmLedHint');
+    if(!s||!e){hint.textContent='';return;}
+    const si=parseInt(s),ei=parseInt(e);
+    if(isNaN(si)||isNaN(ei)){hint.textContent='';return;}
+    const count=Math.abs(ei-si)+1, dir=ei>=si?'ascending':'reversed';
+    hint.innerHTML=`<span class="hi">${count}</span> LED${count!==1?'s':''} · ${dir}`;
+  }
+
+  function lmRenderLineList() {
+    const el=document.getElementById('lmLineList');
+    document.getElementById('lmLineCount').textContent=`${lmLines.length} line${lmLines.length!==1?'s':''}`;
+    el.innerHTML='';
+    lmLines.forEach(function(line) {
+      const hasR=line.ledStart!==null&&line.ledEnd!==null;
+      const div=document.createElement('div');
+      div.className='lm-line-item'+(line.id===lmSelectedId?' selected':'');
+      div.innerHTML=`
+        <div class="lm-line-swatch" style="background:${line.color}"></div>
+        <div class="lm-line-meta">
+          <div class="lm-line-name">${line.label}</div>
+          <div class="lm-line-range ${hasR?'set':''}">${hasR?`${line.ledStart} → ${line.ledEnd}`:'No range set'}</div>
+        </div>
+        <button class="lm-edit-btn">Edit</button>
+        <button class="lm-del-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>`;
+      div.querySelector('.lm-edit-btn').addEventListener('click',function(e){e.stopPropagation();lmSelectedId=line.id;lmRenderLineList();lmRender();lmOpenSheet(line.id);});
+      div.querySelector('.lm-del-btn').addEventListener('click',function(e){e.stopPropagation();lmDeleteLine(line.id);});
+      div.addEventListener('click',function(){lmSelectedId=line.id;lmSetTool('select');lmRenderLineList();lmRender();});
+      el.appendChild(div);
+    });
+  }
+
+  function lmDeleteLine(id){lmLines=lmLines.filter(l=>l.id!==id);if(lmSelectedId===id)lmSelectedId=null;lmRenderLineList();lmRender();lmUpdateLedBar();}
+  window.lmDeleteSelected = function(){if(lmSelectedId!==null)lmDeleteLine(lmSelectedId);else toast('Select a line first');};
+
+  function lmBuildMap() {
+    const cfg=lmLines.filter(l=>l.ledStart!==null&&l.ledEnd!==null);
+    if(!cfg.length) return {"map":[]};
+    const sorted=[...cfg].sort((a,b)=>a.id-b.id);
+    let maxIdx=-1;
+    sorted.forEach(l=>{maxIdx=Math.max(maxIdx,l.ledStart,l.ledEnd);});
+    const map=new Array(maxIdx+1).fill(-1);
+    let phys=0;
+    sorted.forEach(function(line){
+      const s=line.ledStart,e=line.ledEnd,count=Math.abs(e-s)+1;
+      for(let j=0;j<count;j++){const virt=e>=s?s+j:s-j;if(phys<=maxIdx) map[phys]=virt;phys++;}
+    });
+    return {"map":map};
+  }
+
+  function lmGetTotalLeds() {
+    const dev = S.devices.find(d => d.ip === S.activeIp);
+    return dev ? (dev.leds || 0) : 0;
+  }
+
+  function lmUpdateLedBar() {
+    const total=lmGetTotalLeds();
+    const used=lmLines.filter(l=>l.ledStart!==null&&l.ledEnd!==null).reduce((sum,l)=>sum+Math.abs(l.ledEnd-l.ledStart)+1, 0);
+    const fill=document.getElementById('lmProgressFill');
+    const label=document.getElementById('lmUsedLabel');
+    if(!total){ fill.style.width='0%'; fill.style.background='var(--acc)'; label.textContent='— / —'; label.style.color='var(--mu)'; return; }
+    const pct=Math.min((used/total)*100,100);
+    const over=used>total, warn=used/total>=0.9;
+    fill.style.width=pct+'%';
+    fill.style.background=over?'var(--err)':warn?'#f59e0b':'var(--acc)';
+    label.textContent=`${used} / ${total}`;
+    label.style.color=over?'var(--err)':warn?'#f59e0b':'var(--mu)';
+    if(over) toast(`⚠ ${used-total} LEDs over limit!`);
+  }
+
+  function lmRebootWled(ip) {
+    // GET /win&RB — WLED reboots and cuts connection, so errors are expected/ignored
+    var x = new XMLHttpRequest();
+    x.open('GET', 'http://' + ip + '/win&RB', true);
+    x.timeout = 4000;
+    x.onload = x.onerror = x.ontimeout = function(){};
+    x.send();
+  }
+
+  function lmUpload(ip, jsonStr, onOk, onErr) {
+    var fd = new FormData();
+    fd.append('data', new Blob([jsonStr], {type: 'application/json'}), 'ledmap.json');
+    var x = new XMLHttpRequest();
+    x.open('POST', 'http://' + ip + '/edit', true);
+    x.timeout = 8000;
+    x.onload    = function(){ x.status < 300 ? onOk() : onErr(); };
+    x.onerror   = function(){ onErr(); };
+    x.ontimeout = function(){ onErr(); };
+    x.send(fd);
+  }
+
+  window.lmOpenSaveModal = function() {
+    document.getElementById('lmPreviewJson').textContent=JSON.stringify(lmBuildMap());
+    lmOpenModal('lmSaveModal');
+  };
+  window.lmOpenResetModal = function() { lmOpenModal('lmResetModal'); };
+  function lmOpenModal(id){document.getElementById(id).classList.add('open');}
+  window.lmCloseModal = function(id){document.getElementById(id).classList.remove('open');};
+
+  function lmGetIp() { return S.activeIp || ''; }
+
+  window.lmSaveToWled = function() {
+    const ip=lmGetIp(); if(!ip){toast('No device selected');return;}
+    lmCloseModal('lmSaveModal'); toast('Uploading…');
+    lmUpload(ip, JSON.stringify(lmBuildMap()),
+      function(){
+        lmSaveLayout();
+        toast('Saved — rebooting WLED…');
+        document.getElementById('lmStatusDot').style.background='var(--ok)';
+        document.getElementById('lmStatusDot').style.boxShadow='0 0 6px var(--ok)';
+        setTimeout(function(){ lmRebootWled(ip); }, 1500);
+      },
+      function(){ toast('Upload failed – check connection'); }
+    );
+  };
+
+  window.lmResetWled = function() {
+    const ip=lmGetIp(); if(!ip){toast('No device selected');return;}
+    lmCloseModal('lmResetModal'); toast('Resetting…');
+    lmUpload(ip, '{"map":[]}',
+      function(){
+        lmLines=[]; lmSelectedId=null; lmNextId=1; lmRenderLineList(); lmRender(); lmUpdateLedBar();
+        lmDeleteLayout();
+        toast('Reset — rebooting WLED…');
+        setTimeout(function(){ lmRebootWled(ip); }, 1500);
+      },
+      function(){ toast('Reset failed – check connection'); }
+    );
+  };
+
+  // Auto-sync device info when panel becomes visible or device changes
+  window.lmSyncDevice = function() {
+    const ip = S.activeIp;
+    // Reload saved layout for this device
+    lmLines=[]; lmSelectedId=null; lmNextId=1;
+    lmLoadLayout();
+    lmRenderLineList();
+    lmRender();
+    const dev = S.devices.find(d => d.ip === ip);
+    const dot  = document.getElementById('lmDevDot');
+    const name = document.getElementById('lmDevName');
+    const meta = document.getElementById('lmDevMeta');
+    const sdot = document.getElementById('lmStatusDot');
+    if (dev && dev.online) {
+      dot.className  = 'ddot on';
+      name.style.color = 'var(--tx)';
+      name.textContent = dev.name;
+      meta.textContent = `${ip}  ·  ${dev.leds || '?'} LEDs`;
+      sdot.style.background = 'var(--ok)';
+      sdot.style.boxShadow = '0 0 6px rgba(0,230,118,.6)';
+    } else if (dev) {
+      dot.className  = 'ddot off';
+      name.style.color = 'var(--tx)';
+      name.textContent = dev.name;
+      meta.textContent = `${ip}  ·  offline`;
+      sdot.style.background = 'var(--err)';
+      sdot.style.boxShadow = 'none';
+    } else {
+      dot.className  = 'ddot';
+      name.style.color = 'var(--mu)';
+      name.textContent = 'No device selected';
+      meta.textContent = 'Go to Devices tab to connect';
+      sdot.style.background = 'var(--mu)';
+      sdot.style.boxShadow = 'none';
+    }
+    lmUpdateLedBar();
+  };
+
+  // Init when DOM ready — defer so panel exists
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', lmInit);
+  } else {
+    setTimeout(lmInit, 100);
+  }
+})();
+// ══════════════════════════════════════════════════════════════
+
+
+
+// ─── CUSTOM GRADIENT MIXER ───────────────────────────
+var _cgSlot = -1; // -1 = no slot selected, 0/1/2 = stop selected
+var _cgColors = [[255,0,0],[123,0,255],[0,0,255]];
+
+function cgPickSlot(idx) {
+  _cgSlot = idx;
+  // Highlight selected stop
+  [0,1,2].forEach(function(i) {
+    var el = document.getElementById('cgStop'+i);
+    el.style.borderColor = i === idx ? 'white' : 'transparent';
+    el.style.transform = i === idx ? 'scale(1.12)' : 'scale(1)';
+  });
+}
+
+function cgUpdatePreview() {
+  function toHex(c) { return '#'+c.map(function(v){return('0'+v.toString(16)).slice(-2)}).join(''); }
+  var h0=toHex(_cgColors[0]), h1=toHex(_cgColors[1]), h2=toHex(_cgColors[2]);
+  document.getElementById('customGradPreview').style.background =
+    'linear-gradient(90deg,'+h0+','+h1+','+h2+')';
+  document.getElementById('cgStop0').style.background = h0;
+  document.getElementById('cgStop1').style.background = h1;
+  document.getElementById('cgStop2').style.background = h2;
+}
+
+function applyCustomGrad() {
+  // Use the custom mixer colors as a gradient
+  var g = _cgColors;
+  var temp = { name:'custom', colors: g };
+  if (!S.activeIp) { toast('No device selected'); return; }
+  S.colors[0] = [g[0][0], g[0][1], g[0][2], 0];
+  S.colors[1] = [g[1][0], g[1][1], g[1][2], 0];
+  S.colors[2] = [g[2][0], g[2][1], g[2][2], 0];
+  updateSwatches(); drawWheel();
+
+  var dev = S.devices.find(function(d){ return d.ip === S.activeIp; });
+  var total = (dev && dev.leds) ? dev.leds : 60;
+  var third = Math.floor(total / 3);
+  function toHex(c) {
+    return (('0'+c[0].toString(16)).slice(-2)+('0'+c[1].toString(16)).slice(-2)+('0'+c[2].toString(16)).slice(-2)).toUpperCase();
+  }
+  var payload = { seg: { i: [0, third, toHex(g[0]), third, third*2, toHex(g[1]), third*2, total, toHex(g[2])] }};
+  var ip = S.activeIp;
+  clearTimeout(S.sendTimer);
+  wPost(ip, '/json/state', payload);
+  S.gradientActive = true;
+  toast('Gradient applied ✓');
+  _cgSlot = -1;
+  [0,1,2].forEach(function(i){ var el=document.getElementById('cgStop'+i); el.style.borderColor='transparent'; el.style.transform='scale(1)'; });
+}
+
+// Override setColor to also update custom gradient slot if one is selected
+var _origSetColor = setColor;
+setColor = function(r, g, b) {
+  if (_cgSlot >= 0) {
+    _cgColors[_cgSlot] = [r, g, b];
+    cgUpdatePreview();
+    // Don't deselect slot so user can keep tweaking
+  }
+  _origSetColor(r, g, b);
+};
+
+// Also update cg slot when wheel is picked
+var _origPickXY = pickXY;
+pickXY = function(x, y) {
+  _origPickXY(x, y);
+  if (_cgSlot >= 0) {
+    var c = S.colors[S.swatch];
+    _cgColors[_cgSlot] = [c[0], c[1], c[2]];
+    cgUpdatePreview();
+  }
+};
+
+cgUpdatePreview();
+
+function srSyncDevice() {
+  const ip = S.activeIp;
+  const dev = S.devices.find(d => d.ip === ip);
+  document.getElementById('srWledIp').value   = ip || '';
+  document.getElementById('srLedCount').value = dev ? (dev.leds || 60) : 60;
+  const dot  = document.getElementById('srDevDot');
+  const name = document.getElementById('srDevName');
+  const meta = document.getElementById('srDevMeta');
+  if (dev && dev.online) {
+    dot.className  = 'ddot on';
+    name.style.color = 'var(--tx)';
+    name.textContent = dev.name;
+    meta.textContent = `${ip}  ·  ${dev.leds || '?'} LEDs`;
+  } else if (dev) {
+    dot.className  = 'ddot off';
+    name.style.color = 'var(--tx)';
+    name.textContent = dev.name;
+    meta.textContent = `${ip}  ·  offline`;
+  } else {
+    dot.className  = 'ddot';
+    name.style.color = 'var(--mu)';
+    name.textContent = 'No device selected';
+    meta.textContent = 'Go to Devices tab to connect';
+  }
+}
+</script>
+</body>
+</html>
